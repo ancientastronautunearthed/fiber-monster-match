@@ -2,10 +2,16 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { LightCounter } from '@/components/LightCounter';
+import { DailyStreakCard } from '@/components/DailyStreakCard';
+import { CommunityActionsCard } from '@/components/CommunityActionsCard';
+import { TierBadge } from '@/components/TierBadge';
+import { usePoints } from '@/hooks/usePoints';
 import { Heart, Users, Sparkles, Camera, BarChart3, Trophy } from 'lucide-react';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
+  const { userTier } = usePoints();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,11 +44,20 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
       <header className="bg-white/80 backdrop-blur border-b border-border p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Heart className="h-6 w-6 text-pink-500" />
             <h1 className="text-xl font-bold">Fiber Companion</h1>
+            {userTier && (
+              <TierBadge tier={userTier.current_tier} showTitle={false} size="sm" />
+            )}
           </div>
           <div className="flex items-center gap-4">
+            {userTier && (
+              <LightCounter 
+                totalLight={userTier.total_light} 
+                variant="compact"
+              />
+            )}
             <span className="text-sm text-muted-foreground">
               Welcome, {user.email}
             </span>
@@ -67,6 +82,12 @@ const Index = () => {
       </header>
 
       <main className="max-w-6xl mx-auto p-6">
+        {/* Gamification Dashboard */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <DailyStreakCard />
+          <CommunityActionsCard />
+        </div>
+
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Users className="h-12 w-12 text-pink-500" />
