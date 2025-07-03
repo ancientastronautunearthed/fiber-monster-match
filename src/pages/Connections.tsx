@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import CompatibilityCrystal from '@/components/CompatibilityCrystal';
 import { Heart, ArrowLeft, Users, Sparkles, MessageCircle } from 'lucide-react';
 
 interface Profile {
@@ -80,11 +81,50 @@ const Connections = () => {
       return 0;
     }
 
-    const userKeywords = userProfile.monster_keywords;
-    const profileKeywords = profile.monster_keywords;
-    const commonKeywords = userKeywords.filter(keyword => profileKeywords.includes(keyword));
-    
-    return Math.round((commonKeywords.length / Math.max(userKeywords.length, profileKeywords.length)) * 100);
+    let totalScore = 0;
+    let totalCategories = 0;
+
+    // Monster keywords matching (40% weight)
+    const userKeywords = userProfile.monster_keywords || [];
+    const profileKeywords = profile.monster_keywords || [];
+    if (userKeywords.length > 0 && profileKeywords.length > 0) {
+      const commonKeywords = userKeywords.filter(keyword => profileKeywords.includes(keyword));
+      const keywordScore = (commonKeywords.length / Math.max(userKeywords.length, profileKeywords.length)) * 100;
+      totalScore += keywordScore * 0.4;
+      totalCategories += 0.4;
+    }
+
+    // Symptoms matching (25% weight)
+    const userSymptoms = userProfile.symptoms || [];
+    const profileSymptoms = profile.symptoms || [];
+    if (userSymptoms.length > 0 && profileSymptoms.length > 0) {
+      const commonSymptoms = userSymptoms.filter(symptom => profileSymptoms.includes(symptom));
+      const symptomScore = (commonSymptoms.length / Math.max(userSymptoms.length, profileSymptoms.length)) * 100;
+      totalScore += symptomScore * 0.25;
+      totalCategories += 0.25;
+    }
+
+    // Likes matching (20% weight)
+    const userLikes = userProfile.likes || [];
+    const profileLikes = profile.likes || [];
+    if (userLikes.length > 0 && profileLikes.length > 0) {
+      const commonLikes = userLikes.filter(like => profileLikes.includes(like));
+      const likesScore = (commonLikes.length / Math.max(userLikes.length, profileLikes.length)) * 100;
+      totalScore += likesScore * 0.2;
+      totalCategories += 0.2;
+    }
+
+    // Dislikes matching (15% weight) - shared dislikes are good for compatibility
+    const userDislikes = userProfile.dislikes || [];
+    const profileDislikes = profile.dislikes || [];
+    if (userDislikes.length > 0 && profileDislikes.length > 0) {
+      const commonDislikes = userDislikes.filter(dislike => profileDislikes.includes(dislike));
+      const dislikesScore = (commonDislikes.length / Math.max(userDislikes.length, profileDislikes.length)) * 100;
+      totalScore += dislikesScore * 0.15;
+      totalCategories += 0.15;
+    }
+
+    return totalCategories > 0 ? Math.round(totalScore / totalCategories) : 0;
   };
 
   const getCommonKeywords = (profile: Profile) => {
@@ -265,12 +305,18 @@ const Connections = () => {
                             </CardDescription>
                           </div>
                         </div>
-                        <Badge 
-                          variant="secondary" 
-                          className="bg-gradient-to-r from-pink-100 to-purple-100 text-primary font-semibold"
-                        >
-                          {profile.matchScore}% match
-                        </Badge>
+                        <div className="flex items-center gap-4">
+                          <CompatibilityCrystal 
+                            matchScore={profile.matchScore} 
+                            className="flex-shrink-0"
+                          />
+                          <Badge 
+                            variant="secondary" 
+                            className="bg-gradient-to-r from-pink-100 to-purple-100 text-primary font-semibold"
+                          >
+                            {profile.matchScore}% match
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
