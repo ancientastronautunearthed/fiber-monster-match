@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Heart, Users, Sparkles } from 'lucide-react';
+import { Heart, Users, Sparkles, Camera } from 'lucide-react';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -73,7 +73,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Heart className="h-8 w-8 text-pink-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Create Your Monster</h3>
@@ -115,6 +115,21 @@ const Index = () => {
               className="w-full"
             >
               Browse Knowledge Base
+            </Button>
+          </div>
+          
+          <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
+            <Camera className="h-8 w-8 text-green-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Photo Challenges</h3>
+            <p className="text-muted-foreground mb-4">
+              Track your symptoms with daily photos and build healthy habits through gamified challenges.
+            </p>
+            <Button 
+              onClick={() => navigate('/photo-challenges')}
+              variant="outline" 
+              className="w-full"
+            >
+              Start Challenge
             </Button>
           </div>
         </div>
