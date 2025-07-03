@@ -131,6 +131,20 @@ export const useCamera = () => {
         return;
       }
 
+      const video = videoRef.current;
+      
+      // Check if video has valid dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        reject(new Error('Video not ready - invalid dimensions'));
+        return;
+      }
+
+      // Check if video is playing
+      if (video.readyState < 2) {
+        reject(new Error('Video not ready - waiting for data'));
+        return;
+      }
+
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       
@@ -139,19 +153,24 @@ export const useCamera = () => {
         return;
       }
 
-      const video = videoRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      context.drawImage(video, 0, 0);
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to capture photo'));
-        }
-      }, 'image/jpeg', 0.9);
+      try {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw the video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to blob with error handling
+        canvas.toBlob((blob) => {
+          if (blob && blob.size > 0) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create photo blob - blob is null or empty'));
+          }
+        }, 'image/jpeg', 0.9);
+      } catch (error) {
+        reject(new Error(`Canvas drawing failed: ${error.message}`));
+      }
     });
   }, []);
 
