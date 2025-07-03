@@ -33,23 +33,34 @@ const MonsterCreator = () => {
     try {
       const keywordsArray = Object.values(selectedKeywords) as string[];
       
-      const { error } = await supabase
+      // First save keywords to profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           monster_keywords: keywordsArray
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Generate monster image
+      const { data, error: functionError } = await supabase.functions.invoke('generate-monster-image', {
+        body: {
+          keywords: keywordsArray,
+          userId: user.id
+        }
+      });
+
+      if (functionError) throw functionError;
 
       toast({
         title: "Monster Created!",
-        description: "Your Romantic Morgellons Monster persona has been saved."
+        description: "Your unique Romantic Morgellons Monster has been generated and saved."
       });
 
       navigate('/');
     } catch (error) {
-      console.error('Error saving monster:', error);
+      console.error('Error creating monster:', error);
       toast({
         title: "Error",
         description: "Failed to create your monster. Please try again.",
