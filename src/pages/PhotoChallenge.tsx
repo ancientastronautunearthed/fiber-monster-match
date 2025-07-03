@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { CameraCapture } from '@/components/CameraCapture';
+import { ChallengeTemplateSelector } from '@/components/ChallengeTemplateSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -87,56 +88,53 @@ const PhotoChallenge = () => {
     }
   };
 
-  const createNewChallenge = async () => {
-    if (!user) return;
+  const handleTemplateSelected = () => {
+    // Refresh challenges after template selection
+    fetchChallenges();
+  };
 
+  const getInstructionsForChallenge = async (challengeId: string) => {
     try {
-      const { data, error } = await supabase
+      // Get the challenge details
+      const { data: challengeData, error: challengeError } = await supabase
         .from('photo_challenges')
-        .insert({
-          user_id: user.id,
-          title: 'Symptom Progress Tracking',
-          description: 'Track your symptoms daily with consistent photos',
-          challenge_type: 'symptom_tracking',
-          target_area: 'hands',
-          target_days: 30,
-          pose_guide_url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400'
-        })
-        .select()
+        .select('title')
+        .eq('id', challengeId)
         .single();
 
-      if (error) throw error;
+      if (challengeError) throw challengeError;
 
-      if (data) {
-        // Create initial progress entry
-        await supabase
-          .from('user_challenge_progress')
-          .insert({
-            user_id: user.id,
-            challenge_id: data.id,
-            current_streak: 0,
-            longest_streak: 0,
-            total_photos: 0,
-            points_earned: 0
-          });
+      // Find matching template based on challenge title
+      const { data: templateData, error: templateError } = await supabase
+        .from('challenge_templates')
+        .select('pose_instructions')
+        .ilike('name', `%${challengeData.title.split(' ')[0]}%`)
+        .limit(1)
+        .single();
 
-        setChallenges(prev => [...prev, data]);
-        toast({
-          title: "Challenge Created!",
-          description: "Your new photo challenge is ready to start."
-        });
+      if (templateError || !templateData) {
+        // Return default instructions if template not found
+        return [
+          "Position yourself consistently each day",
+          "Use good lighting for clear photos", 
+          "Hold your phone steady with one hand",
+          "Take the photo from the same angle daily"
+        ];
       }
+
+      return templateData.pose_instructions;
     } catch (error) {
-      console.error('Error creating challenge:', error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create challenge. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error fetching instructions:', error);
+      return [
+        "Position yourself consistently each day",
+        "Use good lighting for clear photos",
+        "Hold your phone steady with one hand", 
+        "Take the photo from the same angle daily"
+      ];
     }
   };
 
-  const startCamera = (challenge: Challenge) => {
+  const startCamera = async (challenge: Challenge) => {
     setSelectedChallenge(challenge);
     setShowCamera(true);
   };
@@ -219,12 +217,12 @@ const PhotoChallenge = () => {
         challengeId={selectedChallenge.id}
         dayNumber={getNextDayNumber(selectedChallenge.id)}
         guideImageUrl={selectedChallenge.pose_guide_url}
-        title="Hand Position Guide"
+        title={`${selectedChallenge.title} Guide`}
         instructions={[
-          "Place both hands flat on a surface",
-          "Keep your fingers spread naturally",
-          "Ensure good lighting on your hands",
-          "Take the photo from the same angle each day"
+          "Position yourself consistently each day",
+          "Use good lighting for clear photos",
+          "Hold your phone steady with one hand",
+          "Take the photo from the same angle daily"
         ]}
         onPhotoTaken={handlePhotoTaken}
         onClose={() => setShowCamera(false)}
@@ -269,18 +267,28 @@ const PhotoChallenge = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={createNewChallenge} className="w-full">
-                Create New Challenge
-              </Button>
+              <ChallengeTemplateSelector 
+                onTemplateSelected={handleTemplateSelected}
+                trigger={
+                  <Button className="w-full">
+                    Create New Challenge
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
         ) : (
           <>
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Active Challenges</h2>
-              <Button onClick={createNewChallenge} variant="outline">
-                New Challenge
-              </Button>
+              <ChallengeTemplateSelector 
+                onTemplateSelected={handleTemplateSelected}
+                trigger={
+                  <Button variant="outline">
+                    New Challenge
+                  </Button>
+                }
+              />
             </div>
 
             <div className="grid gap-6">
