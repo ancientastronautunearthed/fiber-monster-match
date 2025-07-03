@@ -87,8 +87,12 @@ const Index = () => {
             <p className="text-muted-foreground mb-4">
               Match with others based on similar symptoms, experiences, and interests.
             </p>
-            <Button variant="outline" className="w-full" disabled>
-              Coming Soon
+            <Button 
+              onClick={() => navigate('/connections')}
+              variant="outline" 
+              className="w-full"
+            >
+              Find Connections
             </Button>
           </div>
           
