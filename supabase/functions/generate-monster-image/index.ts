@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,18 +39,37 @@ serve(async (req) => {
     const prompt = createArtisticPrompt(keywords)
     console.log('Generated prompt:', prompt)
     
-    // Generate image using Hugging Face FLUX model
-    const hf = new HfInference(hfToken)
+    console.log('Calling Hugging Face API...')
     
-    const image = await hf.textToImage({
-      inputs: prompt,
-      model: 'black-forest-labs/FLUX.1-schnell',
-    })
+    // Generate image using Hugging Face API with fetch
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+      {
+        headers: {
+          Authorization: `Bearer ${hfToken}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({
+          inputs: prompt,
+        }),
+      }
+    )
 
-    // Convert the blob to a base64 string
-    const arrayBuffer = await image.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    console.log('Hugging Face response status:', response.status)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Hugging Face API error:', errorText)
+      throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`)
+    }
+
+    // Convert the response to arrayBuffer and then to base64
+    const imageBuffer = await response.arrayBuffer()
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
     const imageUrl = `data:image/png;base64,${base64}`
+
+    console.log('Image generated successfully, saving to profile...')
 
     // Update user profile with generated image
     const supabaseUrl = `https://hqovjmkcqwcgwgavblqg.supabase.co`
