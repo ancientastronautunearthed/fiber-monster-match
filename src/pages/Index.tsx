@@ -66,29 +66,41 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Heart className="h-8 w-8 text-pink-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Create Your Monster</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Design your unique Romantic Morgellons Monster persona to represent your inner self.
             </p>
+            <Button 
+              onClick={() => navigate('/create-monster')}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+            >
+              Create Monster
+            </Button>
           </div>
           
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Users className="h-8 w-8 text-purple-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Find Connections</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Match with others based on similar symptoms, experiences, and interests.
             </p>
+            <Button variant="outline" className="w-full" disabled>
+              Coming Soon
+            </Button>
           </div>
           
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Sparkles className="h-8 w-8 text-indigo-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Interactive Fun</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Play games, solve riddles, and chat with both users and their monster personas.
             </p>
+            <Button variant="outline" className="w-full" disabled>
+              Coming Soon
+            </Button>
           </div>
         </div>
       </main>
