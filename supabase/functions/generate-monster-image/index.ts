@@ -15,10 +15,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('About to parse request body')
     const { keywords, userId } = await req.json()
     console.log('Received request:', { keywords, userId })
     
     if (!keywords || !userId) {
+      console.log('Missing required fields')
       return new Response(
         JSON.stringify({ error: 'Keywords and userId are required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -26,10 +28,13 @@ serve(async (req) => {
     }
 
     // Get Hugging Face access token
+    console.log('Checking for Hugging Face token')
     const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
     if (!hfToken) {
+      console.log('Hugging Face token not found')
       throw new Error('Hugging Face access token not configured')
     }
+    console.log('Hugging Face token found')
 
     // Create artistic prompt from keywords
     const prompt = createArtisticPrompt(keywords)
