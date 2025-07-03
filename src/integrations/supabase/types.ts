@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      matches: {
+        Row: {
+          created_at: string | null
+          id: number
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      monster_journal_entries: {
+        Row: {
+          created_at: string | null
+          entry_text: string
+          id: number
+          match_id: number
+        }
+        Insert: {
+          created_at?: string | null
+          entry_text: string
+          id?: number
+          match_id: number
+        }
+        Update: {
+          created_at?: string | null
+          entry_text?: string
+          id?: number
+          match_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monster_journal_entries_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
