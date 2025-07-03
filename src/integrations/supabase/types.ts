@@ -254,20 +254,35 @@ export type Database = {
       }
       matches: {
         Row: {
+          compatibility_score: number | null
+          connection_status: string | null
           created_at: string | null
           id: number
+          last_interaction_at: string | null
+          match_reason: string[] | null
+          notes: string | null
           user1_id: string
           user2_id: string
         }
         Insert: {
+          compatibility_score?: number | null
+          connection_status?: string | null
           created_at?: string | null
           id?: number
+          last_interaction_at?: string | null
+          match_reason?: string[] | null
+          notes?: string | null
           user1_id: string
           user2_id: string
         }
         Update: {
+          compatibility_score?: number | null
+          connection_status?: string | null
           created_at?: string | null
           id?: number
+          last_interaction_at?: string | null
+          match_reason?: string[] | null
+          notes?: string | null
           user1_id?: string
           user2_id?: string
         }
@@ -435,53 +450,77 @@ export type Database = {
         Row: {
           accessibility: string | null
           additional_notes: string | null
+          body_areas: string[] | null
           cost_level: string | null
           created_at: string
           description: string
           duration_used: string | null
           effectiveness_rating: number | null
+          evidence_level: string | null
+          helpful_votes: number | null
           id: string
           is_anonymous: boolean | null
           is_approved: boolean | null
+          last_updated_by: string | null
+          not_helpful_votes: number | null
           side_effects: string | null
           strategy_type: string
+          symptom_tags: string[] | null
           title: string
+          treatment_category: string | null
           updated_at: string
           user_id: string
+          version_number: number | null
         }
         Insert: {
           accessibility?: string | null
           additional_notes?: string | null
+          body_areas?: string[] | null
           cost_level?: string | null
           created_at?: string
           description: string
           duration_used?: string | null
           effectiveness_rating?: number | null
+          evidence_level?: string | null
+          helpful_votes?: number | null
           id?: string
           is_anonymous?: boolean | null
           is_approved?: boolean | null
+          last_updated_by?: string | null
+          not_helpful_votes?: number | null
           side_effects?: string | null
           strategy_type: string
+          symptom_tags?: string[] | null
           title: string
+          treatment_category?: string | null
           updated_at?: string
           user_id: string
+          version_number?: number | null
         }
         Update: {
           accessibility?: string | null
           additional_notes?: string | null
+          body_areas?: string[] | null
           cost_level?: string | null
           created_at?: string
           description?: string
           duration_used?: string | null
           effectiveness_rating?: number | null
+          evidence_level?: string | null
+          helpful_votes?: number | null
           id?: string
           is_anonymous?: boolean | null
           is_approved?: boolean | null
+          last_updated_by?: string | null
+          not_helpful_votes?: number | null
           side_effects?: string | null
           strategy_type?: string
+          symptom_tags?: string[] | null
           title?: string
+          treatment_category?: string | null
           updated_at?: string
           user_id?: string
+          version_number?: number | null
         }
         Relationships: []
       }
