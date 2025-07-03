@@ -363,12 +363,18 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          condition_duration: string | null
           created_at: string
           current_level: number | null
           dislikes: string[] | null
           display_name: string | null
+          environmental_triggers: string[] | null
+          exercise_types: string[] | null
+          helpful_medications: string[] | null
+          helpful_supplements: string[] | null
           id: string
           last_active_date: string | null
+          lifestyle_factors: string[] | null
           likes: string[] | null
           longest_streak: number | null
           monster_image_url: string | null
@@ -378,25 +384,43 @@ export type Database = {
           monthly_searches_used: number | null
           notification_preferences: Json | null
           onboarding_completed: boolean | null
+          previous_diagnoses: string[] | null
+          primary_symptoms: string[] | null
           privacy_settings: Json | null
+          safe_foods: string[] | null
+          secondary_symptoms: string[] | null
+          sleep_patterns: string[] | null
           streak_count: number | null
+          stress_triggers: string[] | null
           subscription_expires_at: string | null
           subscription_type: string | null
+          symptom_severity: string | null
           symptoms: string[] | null
           total_points: number | null
+          treatment_approaches: string[] | null
+          trigger_foods: string[] | null
+          unhelpful_medications: string[] | null
+          unhelpful_supplements: string[] | null
           updated_at: string
           user_id: string
           username: string | null
+          weather_triggers: string[] | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          condition_duration?: string | null
           created_at?: string
           current_level?: number | null
           dislikes?: string[] | null
           display_name?: string | null
+          environmental_triggers?: string[] | null
+          exercise_types?: string[] | null
+          helpful_medications?: string[] | null
+          helpful_supplements?: string[] | null
           id?: string
           last_active_date?: string | null
+          lifestyle_factors?: string[] | null
           likes?: string[] | null
           longest_streak?: number | null
           monster_image_url?: string | null
@@ -406,25 +430,43 @@ export type Database = {
           monthly_searches_used?: number | null
           notification_preferences?: Json | null
           onboarding_completed?: boolean | null
+          previous_diagnoses?: string[] | null
+          primary_symptoms?: string[] | null
           privacy_settings?: Json | null
+          safe_foods?: string[] | null
+          secondary_symptoms?: string[] | null
+          sleep_patterns?: string[] | null
           streak_count?: number | null
+          stress_triggers?: string[] | null
           subscription_expires_at?: string | null
           subscription_type?: string | null
+          symptom_severity?: string | null
           symptoms?: string[] | null
           total_points?: number | null
+          treatment_approaches?: string[] | null
+          trigger_foods?: string[] | null
+          unhelpful_medications?: string[] | null
+          unhelpful_supplements?: string[] | null
           updated_at?: string
           user_id: string
           username?: string | null
+          weather_triggers?: string[] | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          condition_duration?: string | null
           created_at?: string
           current_level?: number | null
           dislikes?: string[] | null
           display_name?: string | null
+          environmental_triggers?: string[] | null
+          exercise_types?: string[] | null
+          helpful_medications?: string[] | null
+          helpful_supplements?: string[] | null
           id?: string
           last_active_date?: string | null
+          lifestyle_factors?: string[] | null
           likes?: string[] | null
           longest_streak?: number | null
           monster_image_url?: string | null
@@ -434,15 +476,27 @@ export type Database = {
           monthly_searches_used?: number | null
           notification_preferences?: Json | null
           onboarding_completed?: boolean | null
+          previous_diagnoses?: string[] | null
+          primary_symptoms?: string[] | null
           privacy_settings?: Json | null
+          safe_foods?: string[] | null
+          secondary_symptoms?: string[] | null
+          sleep_patterns?: string[] | null
           streak_count?: number | null
+          stress_triggers?: string[] | null
           subscription_expires_at?: string | null
           subscription_type?: string | null
+          symptom_severity?: string | null
           symptoms?: string[] | null
           total_points?: number | null
+          treatment_approaches?: string[] | null
+          trigger_foods?: string[] | null
+          unhelpful_medications?: string[] | null
+          unhelpful_supplements?: string[] | null
           updated_at?: string
           user_id?: string
           username?: string | null
+          weather_triggers?: string[] | null
         }
         Relationships: []
       }

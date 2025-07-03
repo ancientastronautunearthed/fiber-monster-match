@@ -10,6 +10,7 @@ import MonsterCreator from "./pages/MonsterCreator";
 import Connections from "./pages/Connections";
 import WhatWorks from "./pages/WhatWorks";
 import Profile from "./pages/Profile";
+import ProfileRegistration from "./pages/ProfileRegistration";
 import PhotoChallenge from "./pages/PhotoChallenge";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/connections" element={<Connections />} />
             <Route path="/what-works" element={<WhatWorks />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile-registration" element={<ProfileRegistration />} />
             <Route path="/photo-challenges" element={<PhotoChallenge />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
