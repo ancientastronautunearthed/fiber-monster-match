@@ -98,12 +98,16 @@ const Index = () => {
           
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Sparkles className="h-8 w-8 text-indigo-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Interactive Fun</h3>
+            <h3 className="text-lg font-semibold mb-2">What Works</h3>
             <p className="text-muted-foreground mb-4">
-              Play games, solve riddles, and chat with both users and their monster personas.
+              Explore anonymous community knowledge about treatments and strategies that bring real relief.
             </p>
-            <Button variant="outline" className="w-full" disabled>
-              Coming Soon
+            <Button 
+              onClick={() => navigate('/what-works')}
+              variant="outline" 
+              className="w-full"
+            >
+              Browse Knowledge Base
             </Button>
           </div>
         </div>

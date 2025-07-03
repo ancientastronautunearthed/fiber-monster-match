@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MonsterCreator from "./pages/MonsterCreator";
 import Connections from "./pages/Connections";
+import WhatWorks from "./pages/WhatWorks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/create-monster" element={<MonsterCreator />} />
             <Route path="/connections" element={<Connections />} />
+            <Route path="/what-works" element={<WhatWorks />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

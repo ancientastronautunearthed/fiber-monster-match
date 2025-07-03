@@ -66,6 +66,60 @@ export type Database = {
         }
         Relationships: []
       }
+      relief_strategies: {
+        Row: {
+          accessibility: string | null
+          additional_notes: string | null
+          cost_level: string | null
+          created_at: string
+          description: string
+          duration_used: string | null
+          effectiveness_rating: number | null
+          id: string
+          is_anonymous: boolean | null
+          is_approved: boolean | null
+          side_effects: string | null
+          strategy_type: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accessibility?: string | null
+          additional_notes?: string | null
+          cost_level?: string | null
+          created_at?: string
+          description: string
+          duration_used?: string | null
+          effectiveness_rating?: number | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_approved?: boolean | null
+          side_effects?: string | null
+          strategy_type: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accessibility?: string | null
+          additional_notes?: string | null
+          cost_level?: string | null
+          created_at?: string
+          description?: string
+          duration_used?: string | null
+          effectiveness_rating?: number | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_approved?: boolean | null
+          side_effects?: string | null
+          strategy_type?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
