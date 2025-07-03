@@ -133,44 +133,47 @@ export const useCamera = () => {
 
       const video = videoRef.current;
       
-      // Check if video has valid dimensions
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        reject(new Error('Video not ready - invalid dimensions'));
-        return;
-      }
-
-      // Check if video is playing
-      if (video.readyState < 2) {
-        reject(new Error('Video not ready - waiting for data'));
-        return;
-      }
-
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
+      const waitForVideo = () => {
+        // Check if video has valid dimensions and is ready
+        if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
+          captureFrame();
+        } else {
+          // Wait a bit and try again
+          setTimeout(waitForVideo, 100);
+        }
+      };
       
-      if (!context) {
-        reject(new Error('Failed to create canvas context'));
-        return;
-      }
+      const captureFrame = () => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          reject(new Error('Failed to create canvas context'));
+          return;
+        }
 
-      try {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // Draw the video frame to canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to blob with error handling
-        canvas.toBlob((blob) => {
-          if (blob && blob.size > 0) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create photo blob - blob is null or empty'));
-          }
-        }, 'image/jpeg', 0.9);
-      } catch (error) {
-        reject(new Error(`Canvas drawing failed: ${error.message}`));
-      }
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
+          // Draw the video frame to canvas
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Convert to blob with error handling
+          canvas.toBlob((blob) => {
+            if (blob && blob.size > 0) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create photo blob - blob is null or empty'));
+            }
+          }, 'image/jpeg', 0.9);
+        } catch (error: any) {
+          reject(new Error(`Canvas drawing failed: ${error.message}`));
+        }
+      };
+      
+      // Start waiting for video to be ready
+      waitForVideo();
     });
   }, []);
 
