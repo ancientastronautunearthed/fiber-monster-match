@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +10,16 @@ import { toast } from '@/hooks/use-toast';
 import { Heart, Users } from 'lucide-react';
 
 const Auth = () => {
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, user, loading } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect authenticated users to the main page
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
