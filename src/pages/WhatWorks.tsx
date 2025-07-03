@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePoints } from '@/hooks/usePoints';
+import { useCommunityActions } from '@/hooks/useCommunityActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,8 @@ interface ReliefStrategy {
 
 const WhatWorks = () => {
   const { user } = useAuth();
+  const { awardLight } = usePoints();
+  const { upvoteResearch, canPerformAction } = useCommunityActions();
   const navigate = useNavigate();
   const [strategies, setStrategies] = useState<ReliefStrategy[]>([]);
   const [filteredStrategies, setFilteredStrategies] = useState<ReliefStrategy[]>([]);
@@ -34,6 +38,13 @@ const WhatWorks = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [effectivenessFilter, setEffectivenessFilter] = useState('all');
   const [costFilter, setCostFilter] = useState('all');
+  const [newStrategy, setNewStrategy] = useState<Partial<ReliefStrategy>>({
+    title: '',
+    description: '',
+    strategy_type: 'medication',
+    effectiveness_rating: 3
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchStrategies();
@@ -62,6 +73,93 @@ const WhatWorks = () => {
 
     setStrategies(data || []);
     setLoading(false);
+  };
+
+  const handleAddStrategy = async () => {
+    if (!user || !newStrategy.title || !newStrategy.description) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in title and description.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('relief_strategies')
+        .insert({
+          title: newStrategy.title!,
+          description: newStrategy.description!,
+          strategy_type: newStrategy.strategy_type!,
+          effectiveness_rating: newStrategy.effectiveness_rating!,
+          user_id: user.id,
+          is_approved: false,
+          helpful_votes: 0,
+          not_helpful_votes: 0
+        })
+        .select();
+
+      if (error) throw error;
+
+      // Award Light for sharing forbidden knowledge
+      await awardLight(
+        'forbidden_knowledge',
+        150, // As specified in your points system
+        data?.[0]?.id,
+        'relief_strategy',
+        {
+          strategy_type: newStrategy.strategy_type,
+          effectiveness_rating: newStrategy.effectiveness_rating,
+          title: newStrategy.title
+        }
+      );
+
+      toast({
+        title: "Knowledge Shared!",
+        description: "Your wisdom has been added to the resistance database. +150 Light earned!",
+      });
+
+      // Reset form and refresh
+      setNewStrategy({
+        title: '',
+        description: '',
+        strategy_type: 'medication',
+        effectiveness_rating: 3
+      });
+      fetchStrategies();
+    } catch (error) {
+      console.error('Error adding strategy:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add strategy. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpvote = async (strategyId: string) => {
+    if (!canPerformAction('expose_deceit')) {
+      toast({
+        title: "Daily Limit Reached",
+        description: "You've reached your daily limit for research upvotes.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await upvoteResearch(strategyId);
+    if (result.success) {
+      toast({
+        title: "Research Supported!",
+        description: `+${result.pointsEarned} Light for exposing the deceit!`,
+      });
+      // Refresh strategies to show updated vote count
+      fetchStrategies();
+    }
   };
 
   const filterStrategies = () => {

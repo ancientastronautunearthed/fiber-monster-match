@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePoints } from '@/hooks/usePoints';
+import CompatibilityCrystal from '@/components/CompatibilityCrystal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import CompatibilityCrystal from '@/components/CompatibilityCrystal';
 import { Heart, ArrowLeft, Users, Sparkles, MessageCircle } from 'lucide-react';
 
 interface Profile {
@@ -24,6 +25,7 @@ interface Profile {
 
 const Connections = () => {
   const { user } = useAuth();
+  const { awardLight } = usePoints();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
@@ -350,20 +352,53 @@ const Connections = () => {
                       <div className="flex gap-3">
                         <Button 
                           className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
-                          onClick={() => {
+                          onClick={async () => {
+                            // Create match record
+                            const compatibility = calculateMatchScore(profile);
+                            const reasons = getCommonKeywords(profile);
+                            
+                            const { data, error } = await supabase
+                              .from('matches')
+                              .insert({
+                                user1_id: user?.id,
+                                user2_id: profile.user_id,
+                                compatibility_score: compatibility,
+                                match_reason: reasons,
+                                connection_status: 'pending'
+                              })
+                              .select();
+
+                            if (error) throw error;
+
+                            // Award Light for forging an alliance (first message)
+                            if (data && data[0]) {
+                              await awardLight(
+                                'forge_alliance',
+                                20, // As specified in your points system
+                                data[0].id.toString(),
+                                'connection_made',
+                                {
+                                  target_user_id: profile.user_id,
+                                  compatibility_score: compatibility,
+                                  match_reasons: reasons
+                                }
+                              );
+                            }
+
+                            toast({
+                              title: "Alliance Forged!",
+                              description: `Connection made with ${profile.display_name}! +20 Light earned.`,
+                            });
+
                             navigator.clipboard.writeText(icebreaker);
                             toast({
                               title: "Icebreaker Copied!",
-                              description: "The message has been copied to your clipboard."
+                              description: "Start your conversation with this message!"
                             });
                           }}
                         >
                           <MessageCircle className="h-4 w-4 mr-2" />
-                          Use Icebreaker
-                        </Button>
-                        <Button variant="outline" className="flex-1">
-                          <Heart className="h-4 w-4 mr-2" />
-                          Connect
+                          Connect & Use Icebreaker
                         </Button>
                       </div>
                     </CardContent>

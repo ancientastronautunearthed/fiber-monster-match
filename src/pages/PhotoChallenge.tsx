@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { CameraCapture } from '@/components/CameraCapture';
+import { usePoints } from '@/hooks/usePoints';
 import { ChallengeTemplateSelector } from '@/components/ChallengeTemplateSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,7 @@ interface Progress {
 
 const PhotoChallenge = () => {
   const { user } = useAuth();
+  const { awardLight } = usePoints();
   const navigate = useNavigate();
   const [showCamera, setShowCamera] = useState(false);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -189,6 +191,30 @@ const PhotoChallenge = () => {
         });
 
       if (progressError) throw progressError;
+
+      // Award Light for photo challenge completion
+      const isFirstPhoto = newTotal === 1;
+      const basePoints = 15; // Base points for daily photo
+      const bonusPoints = isFirstPhoto ? 10 : 0; // Bonus for starting challenge
+      const streakBonus = newStreak > 1 ? Math.min(newStreak * 2, 20) : 0; // Streak bonus
+      
+      const totalLightEarned = basePoints + bonusPoints + streakBonus;
+      
+      await awardLight(
+        'daily_photo_capture',
+        totalLightEarned,
+        selectedChallenge.id,
+        'photo_challenge',
+        {
+          challenge_type: selectedChallenge.target_area,
+          day_number: dayNumber,
+          streak: newStreak,
+          is_first_photo: isFirstPhoto,
+          base_points: basePoints,
+          bonus_points: bonusPoints,
+          streak_bonus: streakBonus
+        }
+      );
 
       // Refresh data
       await fetchChallenges();
