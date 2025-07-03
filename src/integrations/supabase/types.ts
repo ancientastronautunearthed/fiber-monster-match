@@ -9,6 +9,86 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          name: string
+          points_reward: number | null
+          rarity: string | null
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name: string
+          points_reward?: number | null
+          rarity?: string | null
+          requirement_type: string
+          requirement_value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name?: string
+          points_reward?: number | null
+          rarity?: string | null
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
+      ai_analysis: {
+        Row: {
+          analysis_type: string
+          confidence_score: number | null
+          created_at: string
+          detected_changes: Json | null
+          entry_id: string
+          id: string
+          improvement_suggestions: string[] | null
+          sentiment_analysis: Json | null
+        }
+        Insert: {
+          analysis_type: string
+          confidence_score?: number | null
+          created_at?: string
+          detected_changes?: Json | null
+          entry_id: string
+          id?: string
+          improvement_suggestions?: string[] | null
+          sentiment_analysis?: Json | null
+        }
+        Update: {
+          analysis_type?: string
+          confidence_score?: number | null
+          created_at?: string
+          detected_changes?: Json | null
+          entry_id?: string
+          id?: string
+          improvement_suggestions?: string[] | null
+          sentiment_analysis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_entries: {
         Row: {
           ai_feedback: string | null
@@ -55,6 +135,122 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      challenge_shares: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          like_count: number | null
+          share_settings: Json | null
+          share_type: string
+          shared_by_user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          share_settings?: Json | null
+          share_type: string
+          shared_by_user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          share_settings?: Json | null
+          share_type?: string
+          shared_by_user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_shares_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "photo_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_templates: {
+        Row: {
+          category: string
+          created_at: string
+          default_duration: number | null
+          description: string | null
+          difficulty_level: string | null
+          guide_image_url: string | null
+          id: string
+          name: string
+          points_per_photo: number | null
+          pose_instructions: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_duration?: number | null
+          description?: string | null
+          difficulty_level?: string | null
+          guide_image_url?: string | null
+          id?: string
+          name: string
+          points_per_photo?: number | null
+          pose_instructions?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_duration?: number | null
+          description?: string | null
+          difficulty_level?: string | null
+          guide_image_url?: string | null
+          id?: string
+          name?: string
+          points_per_photo?: number | null
+          pose_instructions?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_interactions: {
+        Row: {
+          comment_text: string | null
+          created_at: string
+          id: string
+          interaction_type: string
+          is_anonymous: boolean | null
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          interaction_type: string
+          is_anonymous?: boolean | null
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          is_anonymous?: boolean | null
+          target_id?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       matches: {
         Row: {
@@ -153,16 +349,26 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          current_level: number | null
           dislikes: string[] | null
           display_name: string | null
           id: string
+          last_active_date: string | null
           likes: string[] | null
+          longest_streak: number | null
           monster_image_url: string | null
           monster_keywords: string[] | null
+          monster_personality: string | null
+          monster_voice_tone: string | null
           monthly_searches_used: number | null
+          notification_preferences: Json | null
+          onboarding_completed: boolean | null
+          privacy_settings: Json | null
+          streak_count: number | null
           subscription_expires_at: string | null
           subscription_type: string | null
           symptoms: string[] | null
+          total_points: number | null
           updated_at: string
           user_id: string
           username: string | null
@@ -171,16 +377,26 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_level?: number | null
           dislikes?: string[] | null
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
           likes?: string[] | null
+          longest_streak?: number | null
           monster_image_url?: string | null
           monster_keywords?: string[] | null
+          monster_personality?: string | null
+          monster_voice_tone?: string | null
           monthly_searches_used?: number | null
+          notification_preferences?: Json | null
+          onboarding_completed?: boolean | null
+          privacy_settings?: Json | null
+          streak_count?: number | null
           subscription_expires_at?: string | null
           subscription_type?: string | null
           symptoms?: string[] | null
+          total_points?: number | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -189,16 +405,26 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_level?: number | null
           dislikes?: string[] | null
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
           likes?: string[] | null
+          longest_streak?: number | null
           monster_image_url?: string | null
           monster_keywords?: string[] | null
+          monster_personality?: string | null
+          monster_voice_tone?: string | null
           monthly_searches_used?: number | null
+          notification_preferences?: Json | null
+          onboarding_completed?: boolean | null
+          privacy_settings?: Json | null
+          streak_count?: number | null
           subscription_expires_at?: string | null
           subscription_type?: string | null
           symptoms?: string[] | null
+          total_points?: number | null
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -259,6 +485,94 @@ export type Database = {
         }
         Relationships: []
       }
+      timelapse_videos: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          duration_seconds: number | null
+          id: string
+          is_public: boolean | null
+          photo_count: number | null
+          processing_status: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_public?: boolean | null
+          photo_count?: number | null
+          processing_status?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_public?: boolean | null
+          photo_count?: number | null
+          processing_status?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timelapse_videos_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "photo_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          progress_value: number | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          progress_value?: number | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          progress_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_challenge_progress: {
         Row: {
           challenge_id: string
@@ -299,6 +613,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "photo_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_feedback: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          device_info: Json | null
+          feedback_type: string
+          id: string
+          message: string
+          rating: number | null
+          status: string | null
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          device_info?: Json | null
+          feedback_type: string
+          id?: string
+          message: string
+          rating?: number | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          device_info?: Json | null
+          feedback_type?: string
+          id?: string
+          message?: string
+          rating?: number | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_reminders: {
+        Row: {
+          challenge_id: string | null
+          created_at: string
+          days_of_week: number[] | null
+          id: string
+          is_active: boolean | null
+          reminder_time: string
+          reminder_type: string | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string
+          days_of_week?: number[] | null
+          id?: string
+          is_active?: boolean | null
+          reminder_time: string
+          reminder_type?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string
+          days_of_week?: number[] | null
+          id?: string
+          is_active?: boolean | null
+          reminder_time?: string
+          reminder_type?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reminders_challenge_id_fkey"
             columns: ["challenge_id"]
             isOneToOne: false
             referencedRelation: "photo_challenges"
