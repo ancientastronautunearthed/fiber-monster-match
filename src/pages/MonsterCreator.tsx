@@ -33,7 +33,7 @@ const MonsterCreator = () => {
     try {
       const keywordsArray = Object.values(selectedKeywords) as string[];
       
-      // First save keywords to profile
+      // Save keywords to profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -43,19 +43,9 @@ const MonsterCreator = () => {
 
       if (profileError) throw profileError;
 
-      // Generate monster image
-      const { data, error: functionError } = await supabase.functions.invoke('generate-monster-image', {
-        body: {
-          keywords: keywordsArray,
-          userId: user.id
-        }
-      });
-
-      if (functionError) throw functionError;
-
       toast({
         title: "Monster Created!",
-        description: "Your unique Romantic Morgellons Monster has been generated and saved."
+        description: "Your unique Romantic Morgellons Monster keywords have been saved."
       });
 
       navigate('/');
