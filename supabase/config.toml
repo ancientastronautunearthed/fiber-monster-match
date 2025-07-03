@@ -1,1 +1,4 @@
 project_id = "hqovjmkcqwcgwgavblqg"
+
+[functions.test-google-key]
+verify_jwt = false
