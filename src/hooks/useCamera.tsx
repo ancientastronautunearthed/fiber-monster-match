@@ -132,11 +132,26 @@ export const useCamera = () => {
       }
 
       const video = videoRef.current;
+      console.log('Video state:', {
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+        srcObject: video.srcObject
+      });
+      
+      // Add timeout to prevent infinite waiting
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
       
       const waitForVideo = () => {
+        attempts++;
+        
         // Check if video has valid dimensions and is ready
         if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
+          console.log('Video ready, capturing frame');
           captureFrame();
+        } else if (attempts >= maxAttempts) {
+          reject(new Error('Timeout waiting for video to be ready'));
         } else {
           // Wait a bit and try again
           setTimeout(waitForVideo, 100);
@@ -156,18 +171,22 @@ export const useCamera = () => {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           
+          console.log('Drawing to canvas:', canvas.width, 'x', canvas.height);
+          
           // Draw the video frame to canvas
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
           
           // Convert to blob with error handling
           canvas.toBlob((blob) => {
             if (blob && blob.size > 0) {
+              console.log('Photo captured successfully, blob size:', blob.size);
               resolve(blob);
             } else {
               reject(new Error('Failed to create photo blob - blob is null or empty'));
             }
           }, 'image/jpeg', 0.9);
         } catch (error: any) {
+          console.error('Canvas drawing error:', error);
           reject(new Error(`Canvas drawing failed: ${error.message}`));
         }
       };

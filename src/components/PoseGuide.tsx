@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye, EyeOff, Info } from 'lucide-react';
+import sampleProgressPhoto from '@/assets/sample-progress-photo.jpg';
 
 interface PoseGuideProps {
   guideImageUrl?: string;
@@ -21,15 +22,17 @@ export const PoseGuide = ({
   return (
     <div className="relative w-full h-full">
       {/* Guide Image Overlay */}
-      {showOverlay && guideImageUrl && (
+      {showOverlay && (
         <div className="absolute inset-0 z-10 pointer-events-none">
           <img
-            src={guideImageUrl}
+            src={guideImageUrl || sampleProgressPhoto}
             alt="Pose guide"
             className="w-full h-full object-contain opacity-30"
           />
           <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Guide overlay</p>
+            <p className="text-xs text-muted-foreground">
+              {guideImageUrl ? 'Guide overlay' : 'Sample photo guide'}
+            </p>
           </div>
         </div>
       )}
@@ -43,20 +46,18 @@ export const PoseGuide = ({
               <h3 className="font-semibold text-sm">{title}</h3>
             </div>
             
-            {guideImageUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowOverlay(!showOverlay)}
-                className="h-8 w-8 p-0"
-              >
-                {showOverlay ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowOverlay(!showOverlay)}
+              className="h-8 w-8 p-0"
+            >
+              {showOverlay ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
           <div className="space-y-2 mb-4">
