@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,62 +25,28 @@ serve(async (req) => {
       )
     }
 
-    // Get Google Cloud service account key
-    const serviceAccountKey = Deno.env.get('GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY')
-    if (!serviceAccountKey) {
-      throw new Error('Google Cloud service account key not configured')
+    // Get Hugging Face access token
+    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
+    if (!hfToken) {
+      throw new Error('Hugging Face access token not configured')
     }
-
-    // Parse the service account key
-    const credentials = JSON.parse(serviceAccountKey)
-    console.log('Using Google Cloud project:', credentials.project_id)
 
     // Create artistic prompt from keywords
     const prompt = createArtisticPrompt(keywords)
     console.log('Generated prompt:', prompt)
     
-    // Generate access token for Google Cloud
-    const accessToken = await getAccessToken(credentials)
-    console.log('Access token obtained')
+    // Generate image using Hugging Face FLUX model
+    const hf = new HfInference(hfToken)
     
-    // Generate image using Vertex AI Imagen
-    const imageResponse = await fetch(
-      `https://us-central1-aiplatform.googleapis.com/v1/projects/${credentials.project_id}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [{
-            prompt: prompt,
-          }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: "1:1",
-            safetyFilterLevel: "block_some",
-            personGeneration: "allow_adult"
-          }
-        })
-      }
-    )
+    const image = await hf.textToImage({
+      inputs: prompt,
+      model: 'black-forest-labs/FLUX.1-schnell',
+    })
 
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text()
-      console.error('Vertex AI error:', errorText)
-      throw new Error(`Vertex AI error: ${imageResponse.status}`)
-    }
-
-    const imageData = await imageResponse.json()
-    console.log('Vertex AI response received')
-    
-    if (!imageData.predictions || !imageData.predictions[0] || !imageData.predictions[0].bytesBase64Encoded) {
-      throw new Error('Invalid response from Vertex AI')
-    }
-
-    const imageBase64 = imageData.predictions[0].bytesBase64Encoded
-    const imageUrl = `data:image/png;base64,${imageBase64}`
+    // Convert the blob to a base64 string
+    const arrayBuffer = await image.arrayBuffer()
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    const imageUrl = `data:image/png;base64,${base64}`
 
     // Update user profile with generated image
     const supabaseUrl = `https://hqovjmkcqwcgwgavblqg.supabase.co`
@@ -112,71 +79,6 @@ serve(async (req) => {
   }
 })
 
-async function getAccessToken(credentials: any): Promise<string> {
-  // Create JWT header
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  }
-
-  // Create JWT payload
-  const now = Math.floor(Date.now() / 1000)
-  const payload = {
-    iss: credentials.client_email,
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600
-  }
-
-  // Import private key
-  const privateKey = await crypto.subtle.importKey(
-    'pkcs8',
-    new TextEncoder().encode(credentials.private_key.replace(/\\n/g, '\n')),
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256'
-    },
-    false,
-    ['sign']
-  )
-
-  // Create JWT
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  const signatureData = new TextEncoder().encode(`${headerB64}.${payloadB64}`)
-  
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    privateKey,
-    signatureData
-  )
-  
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  
-  const jwt = `${headerB64}.${payloadB64}.${signatureB64}`
-
-  // Exchange JWT for access token
-  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt
-    })
-  })
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text()
-    throw new Error(`Failed to get access token: ${errorText}`)
-  }
-
-  const tokenData = await tokenResponse.json()
-  return tokenData.access_token
-}
 
 function createArtisticPrompt(keywords: string[]): string {
   const prompts = {
