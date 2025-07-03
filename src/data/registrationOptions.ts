@@ -112,5 +112,66 @@ export const registrationOptions = {
   durationOptions: [
     'Less than 6 months', '6 months - 1 year', '1-2 years', '2-5 years',
     '5-10 years', 'More than 10 years', 'Since childhood', 'Comes and goes'
+  ],
+
+  // Demographic data for analytics
+  ageRanges: [
+    '18-24', '25-34', '35-44', '45-54', '55-64', '65-74', '75+', 'Prefer not to say'
+  ],
+
+  sexOptions: [
+    'Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'
+  ],
+
+  countries: [
+    'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 
+    'France', 'Italy', 'Spain', 'Netherlands', 'Sweden', 'Norway', 'Denmark',
+    'Japan', 'South Korea', 'Brazil', 'Mexico', 'Argentina', 'India', 'Other'
+  ],
+
+  climateTypes: [
+    'Tropical', 'Dry/Desert', 'Temperate', 'Continental', 'Polar', 
+    'Mediterranean', 'Humid subtropical', 'Oceanic', 'Highland/Mountain'
+  ],
+
+  occupationCategories: [
+    'Healthcare', 'Education', 'Technology', 'Business/Finance', 'Retail',
+    'Manufacturing', 'Construction', 'Transportation', 'Government', 
+    'Non-profit', 'Arts/Entertainment', 'Agriculture', 'Retired', 
+    'Student', 'Unemployed', 'Homemaker', 'Other'
+  ],
+
+  educationLevels: [
+    'High school or less', 'Some college', 'Associate degree', 
+    'Bachelor degree', 'Master degree', 'Doctoral degree', 'Trade school',
+    'Prefer not to say'
+  ],
+
+  incomeRanges: [
+    'Under $25,000', '$25,000-$49,999', '$50,000-$74,999', 
+    '$75,000-$99,999', '$100,000-$149,999', '$150,000+', 'Prefer not to say'
+  ],
+
+  dataSharingLevels: [
+    { 
+      value: 'none', 
+      label: 'No data sharing', 
+      description: 'Your data will not be included in community analytics' 
+    },
+    { 
+      value: 'anonymous', 
+      label: 'Anonymous analytics only', 
+      description: 'Share anonymized data for community pattern analysis' 
+    },
+    { 
+      value: 'research', 
+      label: 'Research participation', 
+      description: 'Include data in approved research studies (still anonymous)' 
+    },
+    { 
+      value: 'full', 
+      label: 'Full community contribution', 
+      description: 'Share data for all community insights and research' 
+    }
   ]
 };

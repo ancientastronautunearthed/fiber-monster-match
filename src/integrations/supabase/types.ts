@@ -89,6 +89,42 @@ export type Database = {
           },
         ]
       }
+      analytics_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          is_published: boolean | null
+          participant_count: number
+          pattern_data: Json
+          pattern_type: string
+          statistical_significance: number | null
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          participant_count: number
+          pattern_data: Json
+          pattern_type: string
+          statistical_significance?: number | null
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          participant_count?: number
+          pattern_data?: Json
+          pattern_type?: string
+          statistical_significance?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       challenge_entries: {
         Row: {
           ai_feedback: string | null
@@ -215,6 +251,51 @@ export type Database = {
           name?: string
           points_per_photo?: number | null
           pose_instructions?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_insights: {
+        Row: {
+          created_at: string
+          data_summary: Json
+          date_range_end: string | null
+          date_range_start: string | null
+          description: string | null
+          id: string
+          insight_type: string
+          is_featured: boolean | null
+          participant_count: number
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_summary: Json
+          date_range_end?: string | null
+          date_range_start?: string | null
+          description?: string | null
+          id?: string
+          insight_type: string
+          is_featured?: boolean | null
+          participant_count: number
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_summary?: Json
+          date_range_end?: string | null
+          date_range_start?: string | null
+          description?: string | null
+          id?: string
+          insight_type?: string
+          is_featured?: boolean | null
+          participant_count?: number
+          tags?: string[] | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
@@ -361,21 +442,31 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_range: string | null
+          analytics_consent: boolean | null
           avatar_url: string | null
           bio: string | null
+          climate_type: string | null
           condition_duration: string | null
+          consent_date: string | null
           created_at: string
           current_level: number | null
+          data_sharing_level: string | null
           dislikes: string[] | null
           display_name: string | null
+          education_level: string | null
           environmental_triggers: string[] | null
           exercise_types: string[] | null
+          height_cm: number | null
           helpful_medications: string[] | null
           helpful_supplements: string[] | null
+          household_income_range: string | null
           id: string
           last_active_date: string | null
           lifestyle_factors: string[] | null
           likes: string[] | null
+          location_country: string | null
+          location_region: string | null
           longest_streak: number | null
           monster_image_url: string | null
           monster_keywords: string[] | null
@@ -383,12 +474,15 @@ export type Database = {
           monster_voice_tone: string | null
           monthly_searches_used: number | null
           notification_preferences: Json | null
+          occupation_category: string | null
           onboarding_completed: boolean | null
           previous_diagnoses: string[] | null
           primary_symptoms: string[] | null
           privacy_settings: Json | null
+          research_participation_consent: boolean | null
           safe_foods: string[] | null
           secondary_symptoms: string[] | null
+          sex: string | null
           sleep_patterns: string[] | null
           streak_count: number | null
           stress_triggers: string[] | null
@@ -405,23 +499,34 @@ export type Database = {
           user_id: string
           username: string | null
           weather_triggers: string[] | null
+          weight_kg: number | null
         }
         Insert: {
+          age_range?: string | null
+          analytics_consent?: boolean | null
           avatar_url?: string | null
           bio?: string | null
+          climate_type?: string | null
           condition_duration?: string | null
+          consent_date?: string | null
           created_at?: string
           current_level?: number | null
+          data_sharing_level?: string | null
           dislikes?: string[] | null
           display_name?: string | null
+          education_level?: string | null
           environmental_triggers?: string[] | null
           exercise_types?: string[] | null
+          height_cm?: number | null
           helpful_medications?: string[] | null
           helpful_supplements?: string[] | null
+          household_income_range?: string | null
           id?: string
           last_active_date?: string | null
           lifestyle_factors?: string[] | null
           likes?: string[] | null
+          location_country?: string | null
+          location_region?: string | null
           longest_streak?: number | null
           monster_image_url?: string | null
           monster_keywords?: string[] | null
@@ -429,12 +534,15 @@ export type Database = {
           monster_voice_tone?: string | null
           monthly_searches_used?: number | null
           notification_preferences?: Json | null
+          occupation_category?: string | null
           onboarding_completed?: boolean | null
           previous_diagnoses?: string[] | null
           primary_symptoms?: string[] | null
           privacy_settings?: Json | null
+          research_participation_consent?: boolean | null
           safe_foods?: string[] | null
           secondary_symptoms?: string[] | null
+          sex?: string | null
           sleep_patterns?: string[] | null
           streak_count?: number | null
           stress_triggers?: string[] | null
@@ -451,23 +559,34 @@ export type Database = {
           user_id: string
           username?: string | null
           weather_triggers?: string[] | null
+          weight_kg?: number | null
         }
         Update: {
+          age_range?: string | null
+          analytics_consent?: boolean | null
           avatar_url?: string | null
           bio?: string | null
+          climate_type?: string | null
           condition_duration?: string | null
+          consent_date?: string | null
           created_at?: string
           current_level?: number | null
+          data_sharing_level?: string | null
           dislikes?: string[] | null
           display_name?: string | null
+          education_level?: string | null
           environmental_triggers?: string[] | null
           exercise_types?: string[] | null
+          height_cm?: number | null
           helpful_medications?: string[] | null
           helpful_supplements?: string[] | null
+          household_income_range?: string | null
           id?: string
           last_active_date?: string | null
           lifestyle_factors?: string[] | null
           likes?: string[] | null
+          location_country?: string | null
+          location_region?: string | null
           longest_streak?: number | null
           monster_image_url?: string | null
           monster_keywords?: string[] | null
@@ -475,12 +594,15 @@ export type Database = {
           monster_voice_tone?: string | null
           monthly_searches_used?: number | null
           notification_preferences?: Json | null
+          occupation_category?: string | null
           onboarding_completed?: boolean | null
           previous_diagnoses?: string[] | null
           primary_symptoms?: string[] | null
           privacy_settings?: Json | null
+          research_participation_consent?: boolean | null
           safe_foods?: string[] | null
           secondary_symptoms?: string[] | null
+          sex?: string | null
           sleep_patterns?: string[] | null
           streak_count?: number | null
           stress_triggers?: string[] | null
@@ -497,6 +619,7 @@ export type Database = {
           user_id?: string
           username?: string | null
           weather_triggers?: string[] | null
+          weight_kg?: number | null
         }
         Relationships: []
       }
@@ -575,6 +698,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
           version_number?: number | null
+        }
+        Relationships: []
+      }
+      research_requests: {
+        Row: {
+          created_at: string
+          ethical_approval_number: string | null
+          id: string
+          institution: string | null
+          requested_data_points: string[]
+          research_description: string
+          research_title: string
+          researcher_email: string
+          researcher_name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ethical_approval_number?: string | null
+          id?: string
+          institution?: string | null
+          requested_data_points: string[]
+          research_description: string
+          research_title: string
+          researcher_email: string
+          researcher_name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ethical_approval_number?: string | null
+          id?: string
+          institution?: string | null
+          requested_data_points?: string[]
+          research_description?: string
+          research_title?: string
+          researcher_email?: string
+          researcher_name?: string
+          status?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
