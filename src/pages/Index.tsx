@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Heart, Users, Sparkles, Camera, BarChart3 } from 'lucide-react';
+import { Heart, Users, Sparkles, Camera, BarChart3, Trophy } from 'lucide-react';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -79,7 +79,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
             <Heart className="h-8 w-8 text-pink-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Create Your Monster</h3>
@@ -136,6 +136,21 @@ const Index = () => {
               className="w-full"
             >
               Start Challenge
+            </Button>
+          </div>
+          
+          <div className="bg-white/60 backdrop-blur rounded-lg p-6 border border-border">
+            <Trophy className="h-8 w-8 text-amber-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Achievements</h3>
+            <p className="text-muted-foreground mb-4">
+              Track your progress in the fight against the monster. Earn Light and unlock tiers in the Resistance.
+            </p>
+            <Button 
+              onClick={() => navigate('/achievements')}
+              variant="outline" 
+              className="w-full"
+            >
+              View Achievements
             </Button>
           </div>
           

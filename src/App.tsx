@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import ProfileRegistration from "./pages/ProfileRegistration";
 import Analytics from "./pages/Analytics";
 import PhotoChallenge from "./pages/PhotoChallenge";
+import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile-registration" element={<ProfileRegistration />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/achievements" element={<Achievements />} />
             <Route path="/photo-challenges" element={<PhotoChallenge />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
