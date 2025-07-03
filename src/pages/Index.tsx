@@ -46,6 +46,13 @@ const Index = () => {
             <span className="text-sm text-muted-foreground">
               Welcome, {user.email}
             </span>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2"
+            >
+              Profile
+            </Button>
             <Button variant="outline" onClick={handleSignOut}>
               Sign Out
             </Button>
