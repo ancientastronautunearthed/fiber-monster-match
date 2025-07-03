@@ -7,15 +7,15 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('Function started, method:', req.method)
+  console.log('Monster image generation function started')
   
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { keywords, userId } = await req.json()
+    console.log('Received request:', { keywords, userId })
     
     if (!keywords || !userId) {
       return new Response(
@@ -24,62 +24,47 @@ serve(async (req) => {
       )
     }
 
-    // Get Google Cloud credentials
-    const serviceAccountKey = Deno.env.get('GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY')
-    if (!serviceAccountKey) {
-      throw new Error('Google Cloud service account key not configured')
+    // Check if OpenAI API key is available
+    const openaiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiKey) {
+      throw new Error('OpenAI API key not configured')
     }
-
-    const credentials = JSON.parse(serviceAccountKey)
-    
-    // Get access token for Google Cloud
-    const jwt = await createJWT(credentials)
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-    })
-    
-    const { access_token } = await tokenResponse.json()
 
     // Create artistic prompt from keywords
     const prompt = createArtisticPrompt(keywords)
+    console.log('Generated prompt:', prompt)
     
-    // Generate image using Vertex AI
-    const projectId = credentials.project_id
-    const location = 'us-central1'
-    
-    const imageResponse = await fetch(
-      `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagegeneration@006:predict`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instances: [{
-            prompt: prompt,
-          }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: "1:1",
-            safetyFilterLevel: "block_some",
-            personGeneration: "allow_adult"
-          }
-        })
-      }
-    )
+    // Generate image using OpenAI DALL-E
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+        response_format: 'b64_json'
+      })
+    })
 
-    const imageResult = await imageResponse.json()
-    
-    if (!imageResult.predictions || !imageResult.predictions[0]) {
-      throw new Error('Failed to generate image')
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('OpenAI API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
     }
 
-    const imageBase64 = imageResult.predictions[0].bytesBase64Encoded
+    const data = await response.json()
+    console.log('OpenAI response received')
     
-    // Convert to data URL
+    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
+      throw new Error('Invalid response from OpenAI')
+    }
+
+    const imageBase64 = data.data[0].b64_json
     const imageUrl = `data:image/png;base64,${imageBase64}`
 
     // Update user profile with generated image
@@ -98,6 +83,7 @@ serve(async (req) => {
       throw new Error('Failed to save image to profile')
     }
 
+    console.log('Monster image generated and saved successfully')
     return new Response(
       JSON.stringify({ imageUrl, prompt }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -111,51 +97,6 @@ serve(async (req) => {
     )
   }
 })
-
-async function createJWT(credentials: any) {
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  }
-
-  const now = Math.floor(Date.now() / 1000)
-  const payload = {
-    iss: credentials.client_email,
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
-    aud: credentials.token_uri,
-    exp: now + 3600,
-    iat: now
-  }
-
-  const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  const encodedPayload = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  
-  const signatureInput = `${encodedHeader}.${encodedPayload}`
-  
-  // Import private key
-  const privateKey = await crypto.subtle.importKey(
-    'pkcs8',
-    new TextEncoder().encode(credentials.private_key.replace(/\\n/g, '\n')),
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256'
-    },
-    false,
-    ['sign']
-  )
-  
-  // Sign
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    privateKey,
-    new TextEncoder().encode(signatureInput)
-  )
-  
-  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-  
-  return `${signatureInput}.${encodedSignature}`
-}
 
 function createArtisticPrompt(keywords: string[]): string {
   const prompts = {
