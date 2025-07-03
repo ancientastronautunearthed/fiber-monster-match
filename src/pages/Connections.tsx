@@ -96,10 +96,68 @@ const Connections = () => {
 
   const generateIcebreaker = (profile: Profile) => {
     const commonKeywords = getCommonKeywords(profile);
-    if (commonKeywords.length === 0) return "Hi! Our monsters should meet.";
+    if (commonKeywords.length === 0) {
+      const fallbacks = [
+        "My monster thinks your monster has excellent taste in humans.",
+        "Our monsters are giving each other the mysterious nod of recognition.",
+        "My monster whispered that yours looks like they know where the good snacks are hidden.",
+        "Your monster caught my monster's attention from across the digital room.",
+        "My monster says yours has 'main character energy' and wants to collaborate."
+      ];
+      return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    }
     
     const randomKeyword = commonKeywords[Math.floor(Math.random() * commonKeywords.length)];
-    return `My monster noticed we both chose "${randomKeyword}." We should chat about that!`;
+    
+    // Witty responses based on specific keywords
+    const wittyResponses: Record<string, string[]> = {
+      'Storm Chaser': [
+        `Both our monsters are storm chasers? Mine's been bragging about that time it rode a lightning bolt. Yours probably has better stories though.`,
+        `My monster spotted another storm chaser and immediately started planning a meteorological adventure. Bring snacks?`,
+        `Two storm chasers? Our monsters are basically the dynamic duo of atmospheric drama.`
+      ],
+      'Night Owl': [
+        `My monster noticed we're both night owls. It's currently judging me for my 3 AM life choices. Yours too?`,
+        `Fellow night owl detected! My monster suggests we start a support group for humans who think midnight is lunch time.`,
+        `My monster and yours should form a nocturnal alliance. They can judge our sleep schedules together.`
+      ],
+      'Pattern Seeker': [
+        `Both pattern seekers? My monster is having an existential crisis about whether this connection was... predetermined. 🤔`,
+        `My monster found another pattern seeker and is now convinced this meeting was written in the cosmic algorithm.`,
+        `Two pattern seekers walk into a chat room... my monster insists there's definitely a pattern here.`
+      ],
+      'Mind Palace Builder': [
+        `My monster heard you also build mind palaces. It wants to know if yours has better interior decorating.`,
+        `Fellow mind palace architect! My monster suggests a house tour. Warning: mine has questionable feng shui.`,
+        `Two mind palaces in one conversation? My monster is already planning the neighborhood association meetings.`
+      ],
+      'Reality Questioner': [
+        `My monster found another reality questioner and immediately started an existential debate about whether this conversation is real.`,
+        `Both questioning reality? My monster thinks we should form a philosophical discussion group. Or maybe we already have?`,
+        `Two reality questioners? My monster is now questioning whether it's questioning reality or reality is questioning it.`
+      ],
+      'Comfort Ritual Master': [
+        `Fellow ritual master detected! My monster wants to trade comfort ritual recipes. It's been hoarding the good ones.`,
+        `My monster respectfully bows to another ritual master. It suggests we compare our sacred comfort protocols.`,
+        `Two ritual masters? My monster is practically vibrating with excitement about potential ritual collaborations.`
+      ]
+    };
+
+    const responses = wittyResponses[randomKeyword];
+    if (responses) {
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // Generic witty fallbacks for other keywords
+    const genericWitty = [
+      `My monster spotted "${randomKeyword}" in your profile and immediately perked up. It's been waiting for this moment.`,
+      `"${randomKeyword}"? My monster just whispered "finally, someone who gets it" and did a little happy dance.`,
+      `My monster saw "${randomKeyword}" and started cackling with glee. I think it found its people.`,
+      `Both "${randomKeyword}"? My monster is convinced we're part of some cosmic inside joke.`,
+      `My monster noticed "${randomKeyword}" and immediately started planning elaborate scenarios. Should I be worried?`
+    ];
+    
+    return genericWitty[Math.floor(Math.random() * genericWitty.length)];
   };
 
   const sortedProfiles = profiles
