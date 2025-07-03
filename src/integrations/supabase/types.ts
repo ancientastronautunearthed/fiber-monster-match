@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      challenge_entries: {
+        Row: {
+          ai_feedback: string | null
+          ai_sentiment: string | null
+          challenge_id: string
+          created_at: string
+          day_number: number
+          id: string
+          image_url: string
+          notes: string | null
+          taken_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_feedback?: string | null
+          ai_sentiment?: string | null
+          challenge_id: string
+          created_at?: string
+          day_number: number
+          id?: string
+          image_url: string
+          notes?: string | null
+          taken_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_feedback?: string | null
+          ai_sentiment?: string | null
+          challenge_id?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          image_url?: string
+          notes?: string | null
+          taken_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "photo_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           created_at: string | null
@@ -58,6 +105,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      photo_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string
+          description: string | null
+          id: string
+          pose_guide_url: string | null
+          status: string | null
+          target_area: string | null
+          target_days: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          pose_guide_url?: string | null
+          status?: string | null
+          target_area?: string | null
+          target_days?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          pose_guide_url?: string | null
+          status?: string | null
+          target_area?: string | null
+          target_days?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -169,6 +258,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_challenge_progress: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_photo_date: string | null
+          longest_streak: number | null
+          points_earned: number | null
+          total_photos: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_photo_date?: string | null
+          longest_streak?: number | null
+          points_earned?: number | null
+          total_photos?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_photo_date?: string | null
+          longest_streak?: number | null
+          points_earned?: number | null
+          total_photos?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "photo_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
