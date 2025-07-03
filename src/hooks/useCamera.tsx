@@ -21,6 +21,11 @@ export const useCamera = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // Check if media devices are supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user', // front camera by default
@@ -33,6 +38,12 @@ export const useCamera = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => resolve(true);
+          }
+        });
       }
       
       setState(prev => ({
@@ -41,14 +52,24 @@ export const useCamera = () => {
         isLoading: false,
         hasPermission: true
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Camera permission denied:', error);
+      let errorMessage = 'Camera access denied. Please allow camera permission and try again.';
+      
+      if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.';
+      } else if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'Camera not supported on this device or browser.';
+      }
+      
       setState(prev => ({
         ...prev,
         isActive: false,
         isLoading: false,
         hasPermission: false,
-        error: 'Camera access denied. Please allow camera permission and try again.'
+        error: errorMessage
       }));
     }
   }, []);
