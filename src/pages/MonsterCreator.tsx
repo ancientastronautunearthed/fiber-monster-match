@@ -48,7 +48,10 @@ const MonsterCreator = () => {
         description: "Your unique Romantic Morgellons Monster keywords have been saved."
       });
 
-      navigate('/');
+      // Navigate after a short delay to ensure toast is shown
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
     } catch (error) {
       console.error('Error creating monster:', error);
       toast({
