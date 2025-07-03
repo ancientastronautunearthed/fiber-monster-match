@@ -255,6 +255,78 @@ export type Database = {
         }
         Relationships: []
       }
+      citadel_upgrades: {
+        Row: {
+          cost: number
+          created_at: string
+          current_level: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_level: number | null
+          name: string
+          upgrade_type: string
+        }
+        Insert: {
+          cost: number
+          created_at?: string
+          current_level?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_level?: number | null
+          name: string
+          upgrade_type: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          current_level?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_level?: number | null
+          name?: string
+          upgrade_type?: string
+        }
+        Relationships: []
+      }
+      community_actions: {
+        Row: {
+          action_date: string
+          action_type: string
+          created_at: string
+          daily_count: number
+          id: string
+          light_earned: number
+          target_content_id: string | null
+          target_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_date?: string
+          action_type: string
+          created_at?: string
+          daily_count?: number
+          id?: string
+          light_earned?: number
+          target_content_id?: string | null
+          target_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_date?: string
+          action_type?: string
+          created_at?: string
+          daily_count?: number
+          id?: string
+          light_earned?: number
+          target_content_id?: string | null
+          target_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       community_insights: {
         Row: {
           created_at: string
@@ -329,6 +401,36 @@ export type Database = {
           is_anonymous?: boolean | null
           target_id?: string
           target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_activities: {
+        Row: {
+          activities_completed: Json
+          activity_date: string
+          created_at: string
+          daily_light_earned: number
+          id: string
+          streak_bonus: number
+          user_id: string
+        }
+        Insert: {
+          activities_completed?: Json
+          activity_date?: string
+          created_at?: string
+          daily_light_earned?: number
+          id?: string
+          streak_bonus?: number
+          user_id: string
+        }
+        Update: {
+          activities_completed?: Json
+          activity_date?: string
+          created_at?: string
+          daily_light_earned?: number
+          id?: string
+          streak_bonus?: number
           user_id?: string
         }
         Relationships: []
@@ -436,6 +538,39 @@ export type Database = {
           target_days?: number | null
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      points_transactions: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          points_amount: number
+          source_id: string | null
+          source_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          points_amount: number
+          source_id?: string | null
+          source_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          points_amount?: number
+          source_id?: string | null
+          source_type?: string | null
           user_id?: string
         }
         Relationships: []
@@ -831,6 +966,33 @@ export type Database = {
           },
         ]
       }
+      user_challenge_participation: {
+        Row: {
+          actions_completed: number | null
+          challenge_id: string
+          id: string
+          joined_at: string
+          light_earned: number | null
+          user_id: string
+        }
+        Insert: {
+          actions_completed?: number | null
+          challenge_id: string
+          id?: string
+          joined_at?: string
+          light_earned?: number | null
+          user_id: string
+        }
+        Update: {
+          actions_completed?: number | null
+          challenge_id?: string
+          id?: string
+          joined_at?: string
+          light_earned?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_challenge_progress: {
         Row: {
           challenge_id: string
@@ -877,6 +1039,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_citadel_contributions: {
+        Row: {
+          contributed_at: string
+          id: string
+          light_spent: number
+          upgrade_id: string
+          user_id: string
+        }
+        Insert: {
+          contributed_at?: string
+          id?: string
+          light_spent: number
+          upgrade_id: string
+          user_id: string
+        }
+        Update: {
+          contributed_at?: string
+          id?: string
+          light_spent?: number
+          upgrade_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_feedback: {
         Row: {
@@ -966,6 +1152,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_tiers: {
+        Row: {
+          created_at: string
+          current_tier: number
+          id: string
+          tier_achieved_at: string
+          total_light: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_tier?: number
+          id?: string
+          tier_achieved_at?: string
+          total_light?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_tier?: number
+          id?: string
+          tier_achieved_at?: string
+          total_light?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_challenges: {
+        Row: {
+          base_reward: number
+          challenge_type: string
+          completion_bonus: number
+          created_at: string
+          current_participants: number | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          start_date: string
+          target_participants: number | null
+          title: string
+        }
+        Insert: {
+          base_reward?: number
+          challenge_type: string
+          completion_bonus?: number
+          created_at?: string
+          current_participants?: number | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          start_date: string
+          target_participants?: number | null
+          title: string
+        }
+        Update: {
+          base_reward?: number
+          challenge_type?: string
+          completion_bonus?: number
+          created_at?: string
+          current_participants?: number | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          target_participants?: number | null
+          title?: string
+        }
+        Relationships: []
       }
     }
     Views: {
