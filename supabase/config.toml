@@ -2,3 +2,6 @@ project_id = "hqovjmkcqwcgwgavblqg"
 
 [functions.test-google-key]
 verify_jwt = false
+
+[functions.generate-monster-image]
+verify_jwt = true
