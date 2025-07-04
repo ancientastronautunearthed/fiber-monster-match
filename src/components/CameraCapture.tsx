@@ -46,8 +46,18 @@ export const CameraCapture = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    requestPermission();
+    // Add a small delay to ensure the component is fully mounted and video element is ready
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        console.log('Video element ready, requesting permission');
+        requestPermission();
+      } else {
+        console.error('Video element not found after mount');
+      }
+    }, 100);
+    
     return () => {
+      clearTimeout(timer);
       stopCamera();
     };
   }, [requestPermission, stopCamera]);
@@ -56,6 +66,15 @@ export const CameraCapture = ({
   useEffect(() => {
     if (state.isActive && videoRef.current) {
       const video = videoRef.current;
+      
+      console.log('Applying video styles, current state:', {
+        isActive: state.isActive,
+        videoElement: !!video,
+        videoParent: video.parentElement?.tagName,
+        currentDisplay: video.style.display,
+        computedDisplay: window.getComputedStyle(video).display,
+      });
+      
       // Force video to be visible
       video.style.display = 'block';
       video.style.visibility = 'visible';
@@ -83,6 +102,8 @@ export const CameraCapture = ({
         width: video.clientWidth,
         height: video.clientHeight,
         parent: video.parentElement?.tagName,
+        computedDisplay: window.getComputedStyle(video).display,
+        computedVisibility: window.getComputedStyle(video).visibility,
       });
     }
   }, [state.isActive, state.facingMode, videoRef]);
@@ -295,31 +316,31 @@ Copy this information when reporting issues.
 
       {/* Camera View / Error State */}
       <div className="h-full w-full relative">
+        {/* Video element - always present but hidden when not active */}
+        <video
+          ref={videoRef}
+          key={`camera-video-${state.facingMode}`}
+          autoPlay
+          playsInline
+          muted
+          className="camera-video"
+          style={{
+            display: state.isActive ? 'block' : 'none',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            backgroundColor: '#000',
+            zIndex: state.isActive ? 1 : -1,
+            transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
+            pointerEvents: state.isActive ? 'auto' : 'none',
+          }}
+        />
+        
         {state.isActive ? (
           <div className="absolute inset-0">
-            {/* Video container with explicit positioning */}
-            <div className="absolute inset-0 bg-black">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="camera-video"
-                style={{
-                  display: 'block',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  backgroundColor: 'transparent',
-                  zIndex: 1,
-                  transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                }}
-              />
-            </div>
-
             {showGuideOverlay && guideImageUrl && dayNumber > 1 && (
               <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
                 <img

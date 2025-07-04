@@ -21,6 +21,35 @@ export const useCamera = () => {
     isReady: false,
   });
 
+  // Helper to wait for video element to be available
+  const waitForVideoElement = useCallback((): Promise<HTMLVideoElement> => {
+    return new Promise((resolve, reject) => {
+      const checkVideo = () => {
+        if (videoRef.current) {
+          resolve(videoRef.current);
+        } else {
+          // Retry after a short delay
+          const retryCount = 20; // Max 2 seconds
+          let attempts = 0;
+          
+          const interval = setInterval(() => {
+            attempts++;
+            if (videoRef.current) {
+              clearInterval(interval);
+              resolve(videoRef.current);
+            } else if (attempts >= retryCount) {
+              clearInterval(interval);
+              reject(new Error('Video element not found after waiting'));
+            }
+          }, 100);
+        }
+      };
+      
+      // Initial check
+      checkVideo();
+    });
+  }, []);
+
   const requestPermission = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null, isReady: false }));
     
@@ -33,6 +62,15 @@ export const useCamera = () => {
       // Check if getUserMedia is available
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Camera access not supported in this browser.');
+      }
+
+      // Wait for video element to be available
+      let video: HTMLVideoElement;
+      try {
+        video = await waitForVideoElement();
+        console.log('Video element found:', video);
+      } catch (err) {
+        throw new Error('Video element not found');
       }
 
       // Stop any existing stream
@@ -62,12 +100,6 @@ export const useCamera = () => {
         
         console.log('Got media stream:', stream);
         console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label, enabled: t.enabled, muted: t.muted })));
-        
-        if (!videoRef.current) {
-          throw new Error('Video element not found');
-        }
-
-        const video = videoRef.current;
         
         // Clear any existing source
         video.srcObject = null;
@@ -225,7 +257,7 @@ export const useCamera = () => {
         videoRef.current.srcObject = null;
       }
     }
-  }, [state.facingMode]);
+  }, [state.facingMode, waitForVideoElement]);
 
   const stopCamera = useCallback(() => {
     console.log('Stopping camera');
