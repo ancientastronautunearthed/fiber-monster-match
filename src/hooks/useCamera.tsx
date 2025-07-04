@@ -37,29 +37,18 @@ export const useCamera = () => {
         throw new Error('Camera access not supported in this browser');
       }
 
-      // Check if any video input devices are available
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        if (videoDevices.length === 0) {
-          throw new Error('No camera found on this device');
-        }
-      } catch (enumError) {
-        console.warn('Could not enumerate devices:', enumError);
-        // Continue anyway, getUserMedia will give us a better error
-      }
-
       // Stop any existing stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
 
+      // Start with basic constraints for better compatibility
       const constraints = {
         video: {
           facingMode: state.facingMode,
-          width: { ideal: 720, max: 1080 },
-          height: { ideal: 1280, max: 1920 }
+          width: { ideal: 720 },
+          height: { ideal: 1280 }
         },
         audio: false
       };
@@ -72,77 +61,43 @@ export const useCamera = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        // Wait for video metadata to load and ensure it's playing
-        await new Promise<void>((resolve, reject) => {
-          if (!videoRef.current) {
-            reject(new Error('Video element not available'));
-            return;
-          }
-
-          const video = videoRef.current;
-          let resolved = false;
-          
-          const onLoadedMetadata = async () => {
-            console.log('Video metadata loaded:', {
-              videoWidth: video.videoWidth,
-              videoHeight: video.videoHeight,
-              readyState: video.readyState
-            });
-            
-            // Ensure video starts playing
-            try {
-              await video.play();
-              console.log('Video is now playing');
-              
-              // Wait a bit more to ensure the video is actually rendering frames
-              setTimeout(() => {
-                if (!resolved) {
-                  resolved = true;
-                  video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                  video.removeEventListener('error', onError);
-                  resolve();
-                }
-              }, 500); // Give 500ms for video to stabilize
-              
-            } catch (playError) {
-              console.error('Video play failed:', playError);
-              if (!resolved) {
-                resolved = true;
+        // Simplified video loading - just wait for loadedmetadata and play
+        const video = videoRef.current;
+        
+        try {
+          // Wait for metadata to load
+          if (video.readyState < 1) {
+            await new Promise((resolve, reject) => {
+              const onLoadedMetadata = () => {
                 video.removeEventListener('loadedmetadata', onLoadedMetadata);
                 video.removeEventListener('error', onError);
-                reject(new Error('Video failed to start playing'));
-              }
-            }
-          };
-
-          const onError = (error: Event) => {
-            console.error('Video error:', error);
-            if (!resolved) {
-              resolved = true;
-              video.removeEventListener('loadedmetadata', onLoadedMetadata);
-              video.removeEventListener('error', onError);
-              reject(new Error('Failed to load video'));
-            }
-          };
-
-          video.addEventListener('loadedmetadata', onLoadedMetadata);
-          video.addEventListener('error', onError);
-
-          // Also check if already loaded
-          if (video.readyState >= 1) {
-            onLoadedMetadata();
+                resolve(true);
+              };
+              
+              const onError = () => {
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video.removeEventListener('error', onError);
+                reject(new Error('Video failed to load'));
+              };
+              
+              video.addEventListener('loadedmetadata', onLoadedMetadata);
+              video.addEventListener('error', onError);
+            });
           }
           
-          // Timeout after 10 seconds
-          setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              video.removeEventListener('loadedmetadata', onLoadedMetadata);
-              video.removeEventListener('error', onError);
-              reject(new Error('Timeout waiting for video to load'));
-            }
-          }, 10000);
-        });
+          // Start playing
+          await video.play();
+          
+          console.log('Video loaded and playing:', {
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            readyState: video.readyState
+          });
+          
+        } catch (playError) {
+          console.warn('Video play failed, but continuing:', playError);
+          // Don't fail here - some browsers auto-play, some don't
+        }
       }
       
       setState(prev => ({
@@ -154,6 +109,7 @@ export const useCamera = () => {
       }));
 
       console.log('Camera started successfully');
+      
     } catch (error: any) {
       console.error('Camera permission/access failed:', error);
       
@@ -173,10 +129,9 @@ export const useCamera = () => {
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
         errorMessage = 'Camera is being used by another application. Close other apps and try again.';
       } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-        errorMessage = 'Camera settings not supported. Trying basic settings...';
-        
         // Try again with very basic constraints
         try {
+          console.log('Trying basic camera constraints...');
           const basicStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
@@ -185,33 +140,8 @@ export const useCamera = () => {
           streamRef.current = basicStream;
           if (videoRef.current) {
             videoRef.current.srcObject = basicStream;
-            
-            await new Promise<void>((resolve, reject) => {
-              if (!videoRef.current) {
-                reject(new Error('Video element not available'));
-                return;
-              }
-
-              const video = videoRef.current;
-              
-              const onLoadedMetadata = () => {
-                video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                video.removeEventListener('error', onError);
-                resolve();
-              };
-
-              const onError = (error: Event) => {
-                video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                video.removeEventListener('error', onError);
-                reject(new Error('Failed to load video'));
-              };
-
-              video.addEventListener('loadedmetadata', onLoadedMetadata);
-              video.addEventListener('error', onError);
-
-              if (video.readyState >= 1) {
-                onLoadedMetadata();
-              }
+            await videoRef.current.play().catch(() => {
+              // Ignore play errors for basic setup
             });
           }
           
@@ -281,8 +211,8 @@ export const useCamera = () => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: newFacingMode,
-          width: { ideal: 720, max: 1080 },
-          height: { ideal: 1280, max: 1920 }
+          width: { ideal: 720 },
+          height: { ideal: 1280 }
         },
         audio: false
       });
@@ -291,66 +221,8 @@ export const useCamera = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
-        // Wait for video to be ready and playing
-        await new Promise<void>((resolve, reject) => {
-          if (!videoRef.current) {
-            reject(new Error('Video element not available'));
-            return;
-          }
-
-          const video = videoRef.current;
-          let resolved = false;
-          
-          const onReady = async () => {
-            try {
-              await video.play();
-              console.log('Switched camera is now playing');
-              
-              setTimeout(() => {
-                if (!resolved) {
-                  resolved = true;
-                  video.removeEventListener('loadedmetadata', onReady);
-                  video.removeEventListener('error', onError);
-                  resolve();
-                }
-              }, 300);
-              
-            } catch (playError) {
-              console.error('Switched video play failed:', playError);
-              if (!resolved) {
-                resolved = true;
-                video.removeEventListener('loadedmetadata', onReady);
-                video.removeEventListener('error', onError);
-                reject(new Error('Switched video failed to start playing'));
-              }
-            }
-          };
-
-          const onError = (error: Event) => {
-            if (!resolved) {
-              resolved = true;
-              video.removeEventListener('loadedmetadata', onReady);
-              video.removeEventListener('error', onError);
-              reject(new Error('Failed to load switched video'));
-            }
-          };
-
-          video.addEventListener('loadedmetadata', onReady);
-          video.addEventListener('error', onError);
-
-          if (video.readyState >= 1) {
-            onReady();
-          }
-          
-          setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              video.removeEventListener('loadedmetadata', onReady);
-              video.removeEventListener('error', onError);
-              reject(new Error('Timeout waiting for switched video'));
-            }
-          }, 5000);
+        await videoRef.current.play().catch(() => {
+          // Ignore play errors
         });
       }
       
@@ -387,25 +259,14 @@ export const useCamera = () => {
         currentTime: video.currentTime
       });
 
-      // Enhanced readiness checks
-      if (video.readyState < 2) {
-        reject(new Error('Video not ready - still loading metadata'));
+      // Simplified readiness check
+      if (video.readyState < 1) {
+        reject(new Error('Video metadata not loaded yet'));
         return;
       }
 
       if (video.videoWidth === 0 || video.videoHeight === 0) {
-        reject(new Error('Video has no dimensions - camera may not be working'));
-        return;
-      }
-
-      if (video.paused || video.ended) {
-        reject(new Error('Video is not playing - camera stream may have stopped'));
-        return;
-      }
-
-      // Additional check: ensure we have recent video data
-      if (video.currentTime === 0) {
-        reject(new Error('Video has no time data - stream may not be active'));
+        reject(new Error('Video has no dimensions - camera may not be working properly'));
         return;
       }
 
@@ -427,13 +288,6 @@ export const useCamera = () => {
         
         // Draw the current video frame
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Check if we actually drew something
-        const imageData = context.getImageData(0, 0, 1, 1);
-        if (imageData.data.every(value => value === 0)) {
-          reject(new Error('Video frame appears to be empty - camera may not be working'));
-          return;
-        }
         
         // Convert canvas to blob
         canvas.toBlob((blob) => {

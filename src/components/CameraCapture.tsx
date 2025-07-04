@@ -1,22 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCamera } from '@/hooks/useCamera';
-import { PoseGuide } from '@/components/PoseGuide';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
 import { 
   Camera, 
   RotateCcw, 
   X, 
-  CheckCircle,
-  AlertCircle,
   Loader2,
   RefreshCw,
   Upload,
-  Image as ImageIcon,
-  Info
+  Info,
+  Eye,
+  EyeOff,
+  Calendar
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -40,81 +38,23 @@ export const CameraCapture = ({
   onClose
 }: CameraCaptureProps) => {
   const { videoRef, state, requestPermission, stopCamera, switchCamera, capturePhoto } = useCamera();
-  const [showGuide, setShowGuide] = useState(true);
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [showGuideOverlay, setShowGuideOverlay] = useState(true);
-  const [videoReady, setVideoReady] = useState(false);
+  const [showGuideOverlay, setShowGuideOverlay] = useState(false); // Default OFF so users see themselves
+  const [showInstructions, setShowInstructions] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Start camera immediately when component mounts
+    requestPermission();
+    
     return () => {
       stopCamera();
     };
-  }, [stopCamera]);
-
-  // Monitor video readiness
-  useEffect(() => {
-    if (!videoRef.current || !state.isActive) {
-      setVideoReady(false);
-      return;
-    }
-
-    const video = videoRef.current;
-    
-    const checkVideoReady = () => {
-      const isReady = video.readyState >= 2 && 
-                     video.videoWidth > 0 && 
-                     video.videoHeight > 0 && 
-                     !video.paused && 
-                     !video.ended &&
-                     video.currentTime > 0;
-      
-      setVideoReady(isReady);
-    };
-
-    // Check immediately
-    checkVideoReady();
-
-    // Set up interval to check periodically
-    const interval = setInterval(checkVideoReady, 1000);
-
-    // Listen for video events
-    video.addEventListener('loadedmetadata', checkVideoReady);
-    video.addEventListener('playing', checkVideoReady);
-    video.addEventListener('pause', checkVideoReady);
-    video.addEventListener('ended', checkVideoReady);
-
-    return () => {
-      clearInterval(interval);
-      video.removeEventListener('loadedmetadata', checkVideoReady);
-      video.removeEventListener('playing', checkVideoReady);
-      video.removeEventListener('pause', checkVideoReady);
-      video.removeEventListener('ended', checkVideoReady);
-    };
-  }, [state.isActive, videoRef]);
-
-  const handleStartCamera = async () => {
-    setShowGuide(false);
-    await requestPermission();
-  };
-
-  const handleRetryCamera = async () => {
-    await requestPermission();
-  };
+  }, [requestPermission, stopCamera]);
 
   const handleCapture = async () => {
     if (!state.isActive || isCapturing) return;
-
-    // Check video readiness before attempting capture
-    if (!videoReady) {
-      toast({
-        title: "Video Not Ready",
-        description: "Please wait for the camera to fully load before taking a photo.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     try {
       setIsCapturing(true);
@@ -143,12 +83,12 @@ export const CameraCapture = ({
       if (error instanceof Error) {
         if (error.message.includes('not ready')) {
           errorMessage = "Camera is still loading. Please wait a moment and try again.";
-        } else if (error.message.includes('not playing')) {
-          errorMessage = "Camera stopped working. Please restart the camera.";
+        } else if (error.message.includes('not playing') || error.message.includes('paused')) {
+          errorMessage = "Camera video paused. Please restart the camera.";
         } else if (error.message.includes('no dimensions')) {
-          errorMessage = "Camera video isn't loading properly. Please restart the camera.";
+          errorMessage = "Camera isn't working properly. Please restart or try upload.";
         } else if (error.message.includes('empty')) {
-          errorMessage = "Camera isn't producing video. Please check your camera and try again.";
+          errorMessage = "Camera isn't producing video. Please check permissions.";
         }
       }
       
@@ -163,8 +103,8 @@ export const CameraCapture = ({
     }
   };
 
-  const toggleGuideOverlay = () => {
-    setShowGuideOverlay(!showGuideOverlay);
+  const handleRetryCamera = async () => {
+    await requestPermission();
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +168,13 @@ export const CameraCapture = ({
       hasMediaDevices: !!navigator.mediaDevices,
       hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
       userAgent: navigator.userAgent,
-      error: state.error
+      error: state.error,
+      videoState: videoRef.current ? {
+        readyState: videoRef.current.readyState,
+        videoWidth: videoRef.current.videoWidth,
+        videoHeight: videoRef.current.videoHeight,
+        paused: videoRef.current.paused
+      } : null
     };
 
     const debugText = `
@@ -240,6 +186,7 @@ Debug Information:
 - getUserMedia API: ${debugInfo.hasGetUserMedia}
 - Browser: ${debugInfo.userAgent.split(' ').slice(-2).join(' ')}
 - Current Error: ${debugInfo.error}
+- Video State: ${JSON.stringify(debugInfo.videoState, null, 2)}
 
 Copy this information when reporting issues.
     `.trim();
@@ -250,60 +197,47 @@ Copy this information when reporting issues.
         description: "Debug information has been copied to clipboard.",
       });
     }).catch(() => {
-      // Fallback: show in alert
       alert(debugText);
     });
   };
 
-  // Show pose guide first
-  if (showGuide) {
-    return (
-      <div className="fixed inset-0 bg-background z-50">
-        <div className="relative w-full h-full bg-gradient-to-br from-background to-muted/20">
-          <PoseGuide
-            guideImageUrl={guideImageUrl}
-            title={title}
-            instructions={instructions}
-            onNext={handleStartCamera}
-          />
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="absolute top-4 right-4 z-30"
-          >
-            <X className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black z-50">
-      {/* Header */}
+      {/* Header Controls */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs bg-black/50 text-white">
               Day {dayNumber}
             </Badge>
             <span className="text-white text-sm font-medium">{title}</span>
           </div>
           
           <div className="flex items-center gap-2">
-            {guideImageUrl && (
+            {/* Instructions Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowInstructions(!showInstructions)}
+              className="text-white hover:bg-white/20"
+            >
+              <Info className="h-4 w-4 mr-1" />
+              {showInstructions ? 'Hide' : 'Show'} Tips
+            </Button>
+
+            {/* Guide Overlay Toggle - only show if we have a guide AND it's not day 1 */}
+            {guideImageUrl && dayNumber > 1 && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={toggleGuideOverlay}
+                onClick={() => setShowGuideOverlay(!showGuideOverlay)}
                 className="text-white hover:bg-white/20"
               >
-                {showGuideOverlay ? 'Hide Guide' : 'Show Guide'}
+                {showGuideOverlay ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             )}
             
+            {/* Camera Switch */}
             {state.isActive && (
               <Button
                 variant="ghost"
@@ -316,6 +250,7 @@ Copy this information when reporting issues.
               </Button>
             )}
             
+            {/* Close */}
             <Button
               variant="ghost"
               size="icon"
@@ -328,11 +263,11 @@ Copy this information when reporting issues.
         </div>
       </div>
 
-      {/* Camera View */}
+      {/* Main Camera View */}
       <div className="relative w-full h-full">
         {state.isActive ? (
           <>
-            {/* Video Element */}
+            {/* Live Video Feed - This should be the PRIMARY view */}
             <video
               ref={videoRef}
               autoPlay
@@ -341,19 +276,18 @@ Copy this information when reporting issues.
               controls={false}
               className="w-full h-full object-cover"
               style={{ 
-                transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none' 
+                transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                zIndex: 1
               }}
-              onLoadedMetadata={() => console.log('Video metadata loaded in component')}
-              onPlaying={() => console.log('Video started playing in component')}
             />
             
-            {/* Guide Overlay */}
-            {guideImageUrl && showGuideOverlay && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            {/* Guide Overlay - Only show if explicitly enabled and after day 1 */}
+            {guideImageUrl && showGuideOverlay && dayNumber > 1 && (
+              <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
                 <img
                   src={guideImageUrl}
                   alt="Pose guide overlay"
-                  className="max-w-full max-h-full object-contain opacity-30"
+                  className="w-full h-full object-contain opacity-30"
                   style={{ 
                     transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
                     filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))'
@@ -364,43 +298,12 @@ Copy this information when reporting issues.
             
             {/* Countdown Overlay */}
             {countdown && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center" style={{ zIndex: 10 }}>
                 <div className="text-8xl font-bold text-white animate-pulse drop-shadow-lg">
                   {countdown}
                 </div>
               </div>
             )}
-
-            {/* Capture Controls */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-6">
-              <div className="flex items-center justify-center">
-                <Button
-                  size="lg"
-                  onClick={handleCapture}
-                  disabled={isCapturing || !state.isActive || !videoReady}
-                  className="rounded-full w-16 h-16 bg-white hover:bg-gray-200 text-black disabled:opacity-50"
-                >
-                  {isCapturing ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <Camera className="h-6 w-6" />
-                  )}
-                </Button>
-              </div>
-              
-              {!isCapturing && (
-                <div className="text-center text-white/80 text-sm mt-3">
-                  {!videoReady ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Waiting for camera to load...</span>
-                    </div>
-                  ) : (
-                    `Tap to capture your Day ${dayNumber} photo`
-                  )}
-                </div>
-              )}
-            </div>
           </>
         ) : state.isLoading ? (
           <div className="flex items-center justify-center h-full bg-black">
@@ -417,7 +320,7 @@ Copy this information when reporting issues.
             <Card className="bg-black/80 border-red-500/50 max-w-md">
               <CardContent className="p-6">
                 <Alert className="border-red-500/50 bg-red-500/10 mb-4">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <Info className="h-4 w-4 text-red-400" />
                   <AlertDescription className="text-white">
                     {state.error}
                   </AlertDescription>
@@ -444,7 +347,7 @@ Copy this information when reporting issues.
                     ) : (
                       <Upload className="h-4 w-4 mr-2" />
                     )}
-                    Upload Photo
+                    Upload
                   </Button>
 
                   <Button
@@ -527,14 +430,79 @@ Copy this information when reporting issues.
         )}
       </div>
 
+      {/* Instructions Panel */}
+      {showInstructions && state.isActive && (
+        <div className="absolute bottom-20 left-4 right-4 z-20">
+          <Card className="bg-black/80 border-white/20 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm text-white">Photo Tips</h3>
+                </div>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowInstructions(false)}
+                  className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {instructions.slice(0, 3).map((instruction, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <span className="flex-shrink-0 w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center font-medium">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm text-white/80">{instruction}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Capture Controls */}
+      {state.isActive && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-6">
+          <div className="flex items-center justify-center">
+            <Button
+              size="lg"
+              onClick={handleCapture}
+              disabled={isCapturing}
+              className="rounded-full w-16 h-16 bg-white hover:bg-gray-200 text-black disabled:opacity-50"
+            >
+              {isCapturing ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Camera className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
+          
+          {!isCapturing && (
+            <div className="text-center text-white/80 text-sm mt-3">
+              <p>Tap to capture your Day {dayNumber} photo</p>
+              {dayNumber === 1 && (
+                <p className="text-xs text-yellow-400 mt-1">
+                  Your first photo will create a pose guide for future days
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Status Indicator */}
       {state.isActive && (
-        <div className="absolute top-4 left-4 z-20">
+        <div className="absolute top-20 left-4 z-20">
           <div className="flex items-center gap-2 bg-black/50 rounded-full px-3 py-1">
-            <div className={`w-2 h-2 rounded-full ${videoReady ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
-            <span className="text-white text-xs">
-              {videoReady ? 'Ready' : 'Loading...'}
-            </span>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-white text-xs">Live</span>
           </div>
         </div>
       )}
