@@ -233,73 +233,93 @@ Copy this information when reporting issues.
                 onClick={() => setShowGuideOverlay(!showGuideOverlay)}
                 className="text-white hover:bg-white/20"
               >
-                {showGuideOverlay ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showGuideOverlay ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Hide Guide
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Show Guide
+                  </>
+                )}
               </Button>
             )}
-            
+
             {/* Camera Switch */}
             {state.isActive && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={switchCamera}
                 disabled={state.isLoading}
                 className="text-white hover:bg-white/20"
               >
-                <RotateCcw className="h-5 w-5" />
+                <RotateCcw className="h-4 w-4" />
               </Button>
             )}
-            
-            {/* Close */}
+
+            {/* Close Button */}
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={onClose}
               className="text-white hover:bg-white/20"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Main Camera View */}
-      <div className="relative w-full h-full">
+      {/* Camera View / Error State */}
+      <div className="h-full flex items-center justify-center relative">
         {state.isActive ? (
           <>
-            {/* Live Video Feed - This should be the PRIMARY view */}
+            {/* Video Element - Make sure it's visible */}
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              controls={false}
               className="w-full h-full object-cover"
-              style={{ 
+              style={{
                 transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                backgroundColor: '#000',
                 zIndex: 1
               }}
             />
-            
-            {/* Guide Overlay - Only show if explicitly enabled and after day 1 */}
-            {guideImageUrl && showGuideOverlay && dayNumber > 1 && (
-              <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+
+            {/* Guide Overlay - Semi-transparent overlay image */}
+            {showGuideOverlay && guideImageUrl && dayNumber > 1 && (
+              <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
                 <img
                   src={guideImageUrl}
-                  alt="Pose guide overlay"
-                  className="w-full h-full object-contain opacity-30"
-                  style={{ 
-                    transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                    filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))'
+                  alt="Pose guide"
+                  className="max-w-full max-h-full object-contain"
+                  style={{
+                    opacity: 0.3,
+                    mixBlendMode: 'screen'
                   }}
                 />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white px-4 py-2 rounded-lg text-sm">
+                  Align your pose with the guide
+                </div>
               </div>
             )}
-            
+
             {/* Countdown Overlay */}
-            {countdown && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center" style={{ zIndex: 10 }}>
-                <div className="text-8xl font-bold text-white animate-pulse drop-shadow-lg">
+            {countdown !== null && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50">
+                <div className="text-white text-9xl font-bold animate-pulse">
                   {countdown}
                 </div>
               </div>
@@ -309,39 +329,26 @@ Copy this information when reporting issues.
           <div className="flex items-center justify-center h-full bg-black">
             <Card className="bg-black/80 border-white/20">
               <CardContent className="p-6 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-white" />
+                <Loader2 className="h-12 w-12 text-white animate-spin mx-auto mb-4" />
                 <p className="text-white">Starting camera...</p>
-                <p className="text-white/60 text-sm mt-2">Please allow camera access</p>
               </CardContent>
             </Card>
           </div>
         ) : state.error ? (
-          <div className="flex items-center justify-center h-full bg-black p-6">
-            <Card className="bg-black/80 border-red-500/50 max-w-md">
+          <div className="flex items-center justify-center h-full bg-black">
+            <Card className="bg-black/80 border-white/20 max-w-md w-full mx-4">
               <CardContent className="p-6">
-                <Alert className="border-red-500/50 bg-red-500/10 mb-4">
-                  <Info className="h-4 w-4 text-red-400" />
-                  <AlertDescription className="text-white">
-                    {state.error}
-                  </AlertDescription>
+                <Alert className="bg-red-900/20 border-red-900/50 text-white mb-4">
+                  <AlertDescription>{state.error}</AlertDescription>
                 </Alert>
                 
-                <div className="flex gap-2 mb-4">
-                  <Button
-                    onClick={handleRetryCamera}
-                    className="flex-1"
-                    variant="outline"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                <div className="space-y-3">
+                  <Button onClick={handleRetryCamera} className="w-full bg-white text-black hover:bg-gray-200">
+                    <Camera className="h-4 w-4 mr-2" />
                     Try Again
                   </Button>
                   
-                  <Button
-                    onClick={triggerFileUpload}
-                    className="flex-1"
-                    variant="default"
-                    disabled={isCapturing}
-                  >
+                  <Button onClick={triggerFileUpload} variant="outline" className="w-full text-white border-white/20 hover:bg-white/20" disabled={isCapturing}>
                     {isCapturing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (

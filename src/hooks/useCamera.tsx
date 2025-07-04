@@ -47,8 +47,8 @@ export const useCamera = () => {
       const constraints = {
         video: {
           facingMode: state.facingMode,
-          width: { ideal: 720 },
-          height: { ideal: 1280 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         },
         audio: false
       };
@@ -59,45 +59,48 @@ export const useCamera = () => {
       streamRef.current = stream;
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        
-        // Simplified video loading - just wait for loadedmetadata and play
         const video = videoRef.current;
+        video.srcObject = stream;
         
-        try {
-          // Wait for metadata to load
-          if (video.readyState < 1) {
-            await new Promise((resolve, reject) => {
-              const onLoadedMetadata = () => {
-                video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                video.removeEventListener('error', onError);
-                resolve(true);
-              };
-              
-              const onError = () => {
-                video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                video.removeEventListener('error', onError);
-                reject(new Error('Video failed to load'));
-              };
-              
-              video.addEventListener('loadedmetadata', onLoadedMetadata);
-              video.addEventListener('error', onError);
+        // Set video element attributes for better compatibility
+        video.setAttribute('autoplay', 'true');
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('muted', 'true');
+        
+        // Wait for video to be ready
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Video loading timeout'));
+          }, 10000); // 10 second timeout
+
+          const checkVideo = () => {
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
+              clearTimeout(timeoutId);
+              console.log('Video ready:', {
+                readyState: video.readyState,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight
+              });
+              resolve();
+            } else {
+              requestAnimationFrame(checkVideo);
+            }
+          };
+
+          video.onloadedmetadata = () => {
+            video.play().then(() => {
+              checkVideo();
+            }).catch(err => {
+              clearTimeout(timeoutId);
+              reject(err);
             });
-          }
-          
-          // Start playing
-          await video.play();
-          
-          console.log('Video loaded and playing:', {
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            readyState: video.readyState
-          });
-          
-        } catch (playError) {
-          console.warn('Video play failed, but continuing:', playError);
-          // Don't fail here - some browsers auto-play, some don't
-        }
+          };
+
+          video.onerror = () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Video failed to load'));
+          };
+        });
       }
       
       setState(prev => ({
@@ -140,6 +143,9 @@ export const useCamera = () => {
           streamRef.current = basicStream;
           if (videoRef.current) {
             videoRef.current.srcObject = basicStream;
+            videoRef.current.setAttribute('autoplay', 'true');
+            videoRef.current.setAttribute('playsinline', 'true');
+            videoRef.current.setAttribute('muted', 'true');
             await videoRef.current.play().catch(() => {
               // Ignore play errors for basic setup
             });
@@ -211,8 +217,8 @@ export const useCamera = () => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: newFacingMode,
-          width: { ideal: 720 },
-          height: { ideal: 1280 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         },
         audio: false
       });
@@ -221,6 +227,9 @@ export const useCamera = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('muted', 'true');
         await videoRef.current.play().catch(() => {
           // Ignore play errors
         });
@@ -259,50 +268,68 @@ export const useCamera = () => {
         currentTime: video.currentTime
       });
 
-      // Simplified readiness check
-      if (video.readyState < 1) {
-        reject(new Error('Video metadata not loaded yet'));
-        return;
-      }
-
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        reject(new Error('Video has no dimensions - camera may not be working properly'));
-        return;
-      }
-
-      try {
-        // Create canvas for capture
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        if (!context) {
-          reject(new Error('Failed to create canvas context'));
+      // Wait for video to be fully ready
+      const captureFrame = () => {
+        // Check if video is ready and has dimensions
+        if (video.readyState < 2) {
+          // Wait for next frame
+          requestAnimationFrame(captureFrame);
           return;
         }
 
-        // Set canvas size to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        console.log('Drawing video to canvas:', canvas.width, 'x', canvas.height);
-        
-        // Draw the current video frame
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert canvas to blob
-        canvas.toBlob((blob) => {
-          if (blob && blob.size > 0) {
-            console.log('Photo captured successfully, size:', blob.size, 'bytes');
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create photo - blob is empty'));
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          // Try one more time after a short delay
+          setTimeout(() => {
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+              reject(new Error('Video has no dimensions - camera may not be working properly'));
+            } else {
+              performCapture();
+            }
+          }, 100);
+          return;
+        }
+
+        performCapture();
+      };
+
+      const performCapture = () => {
+        try {
+          // Create canvas for capture
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          
+          if (!context) {
+            reject(new Error('Failed to create canvas context'));
+            return;
           }
-        }, 'image/jpeg', 0.92);
-        
-      } catch (error: any) {
-        console.error('Canvas capture error:', error);
-        reject(new Error(`Photo capture failed: ${error.message}`));
-      }
+
+          // Set canvas size to match video
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
+          console.log('Drawing video to canvas:', canvas.width, 'x', canvas.height);
+          
+          // Draw the current video frame
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Convert canvas to blob
+          canvas.toBlob((blob) => {
+            if (blob && blob.size > 0) {
+              console.log('Photo captured successfully, size:', blob.size, 'bytes');
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create photo - blob is empty'));
+            }
+          }, 'image/jpeg', 0.92);
+          
+        } catch (error: any) {
+          console.error('Canvas capture error:', error);
+          reject(new Error(`Photo capture failed: ${error.message}`));
+        }
+      };
+
+      // Start the capture process
+      captureFrame();
     });
   }, []);
 
