@@ -505,6 +505,7 @@ export type Database = {
           challenge_type: string
           created_at: string
           description: string | null
+          end_date?: string
           id: string
           pose_guide_url: string | null
           status: string | null
