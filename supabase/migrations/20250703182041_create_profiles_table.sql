@@ -1,44 +1,44 @@
 -- Final part: Storage policies, indexes, triggers and default data
 
 -- Storage policies for new buckets (only create if they don't exist)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM storage.policies 
-    WHERE policy_name = 'Users can upload their own timelapse videos'
-  ) THEN
-    CREATE POLICY "Users can upload their own timelapse videos" 
-    ON storage.objects FOR INSERT 
-    WITH CHECK (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
+-- DO $$
+-- BEGIN
+--   IF NOT EXISTS (
+--     SELECT 1 FROM storage.policies
+--     WHERE policy_name = 'Users can upload their own timelapse videos'
+--   ) THEN
+--     CREATE POLICY "Users can upload their own timelapse videos"
+--     ON storage.objects FOR INSERT
+--     WITH CHECK (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
+--   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM storage.policies 
-    WHERE policy_name = 'Users can view their own timelapse videos'
-  ) THEN
-    CREATE POLICY "Users can view their own timelapse videos" 
-    ON storage.objects FOR SELECT 
-    USING (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
+--   IF NOT EXISTS (
+--     SELECT 1 FROM storage.policies
+--     WHERE policy_name = 'Users can view their own timelapse videos'
+--   ) THEN
+--     CREATE POLICY "Users can view their own timelapse videos"
+--     ON storage.objects FOR SELECT
+--     USING (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
+--   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM storage.policies 
-    WHERE policy_name = 'Anyone can view challenge templates'
-  ) THEN
-    CREATE POLICY "Anyone can view challenge templates" 
-    ON storage.objects FOR SELECT 
-    USING (bucket_id = 'challenge-templates');
-  END IF;
+--   IF NOT EXISTS (
+--     SELECT 1 FROM storage.policies
+--     WHERE policy_name = 'Anyone can view challenge templates'
+--   ) THEN
+--     CREATE POLICY "Anyone can view challenge templates"
+--     ON storage.objects FOR SELECT
+--     USING (bucket_id = 'challenge-templates');
+--   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM storage.policies 
-    WHERE policy_name = 'Anyone can view achievement icons'
-  ) THEN
-    CREATE POLICY "Anyone can view achievement icons" 
-    ON storage.objects FOR SELECT 
-    USING (bucket_id = 'achievement-icons');
-  END IF;
-END $$;
+--   IF NOT EXISTS (
+--     SELECT 1 FROM storage.policies
+--     WHERE policy_name = 'Anyone can view achievement icons'
+--   ) THEN
+--     CREATE POLICY "Anyone can view achievement icons"
+--     ON storage.objects FOR SELECT
+--     USING (bucket_id = 'achievement-icons');
+--   END IF;
+-- END $$;
 
 -- Add indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_ai_analysis_entry_id ON public.ai_analysis(entry_id);
@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_relief_strategies_symptom_tags ON public.relief_s
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.triggers 
+    SELECT 1 FROM information_schema.triggers
     WHERE trigger_name = 'update_challenge_templates_updated_at'
   ) THEN
     CREATE TRIGGER update_challenge_templates_updated_at
@@ -64,7 +64,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.triggers 
+    SELECT 1 FROM information_schema.triggers
     WHERE trigger_name = 'update_timelapse_videos_updated_at'
   ) THEN
     CREATE TRIGGER update_timelapse_videos_updated_at
@@ -73,7 +73,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.triggers 
+    SELECT 1 FROM information_schema.triggers
     WHERE trigger_name = 'update_user_reminders_updated_at'
   ) THEN
     CREATE TRIGGER update_user_reminders_updated_at
@@ -82,7 +82,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.triggers 
+    SELECT 1 FROM information_schema.triggers
     WHERE trigger_name = 'update_user_feedback_updated_at'
   ) THEN
     CREATE TRIGGER update_user_feedback_updated_at
@@ -92,9 +92,9 @@ BEGIN
 END $$;
 
 -- Insert default challenge templates (only if they don't exist)
-INSERT INTO public.challenge_templates (name, description, category, pose_instructions, points_per_photo) 
+INSERT INTO public.challenge_templates (name, description, category, pose_instructions, points_per_photo)
 SELECT * FROM (VALUES
-  ('Hand Tracking', 'Track changes in your hands over time', 'skin_condition', 
+  ('Hand Tracking', 'Track changes in your hands over time', 'skin_condition',
    ARRAY['Place both hands flat on a clean surface', 'Keep fingers naturally spread', 'Use consistent lighting', 'Take photo from same angle daily'], 10),
   ('Face Progress', 'Monitor facial symptoms and changes', 'skin_condition',
    ARRAY['Look directly at camera with neutral expression', 'Use natural lighting from front', 'Keep hair away from face', 'No makeup or filters'], 15),
@@ -106,7 +106,7 @@ SELECT * FROM (VALUES
 WHERE NOT EXISTS (SELECT 1 FROM public.challenge_templates WHERE challenge_templates.name = v.name);
 
 -- Insert default achievements (only if they don't exist)
-INSERT INTO public.achievements (name, description, category, requirement_type, requirement_value, points_reward, rarity) 
+INSERT INTO public.achievements (name, description, category, requirement_type, requirement_value, points_reward, rarity)
 SELECT * FROM (VALUES
   ('First Steps', 'Take your first challenge photo', 'progress', 'total_photos', 1, 50, 'common'),
   ('Week Warrior', 'Maintain a 7-day streak', 'streak', 'days_streak', 7, 100, 'common'),

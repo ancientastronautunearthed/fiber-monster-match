@@ -1,20 +1,20 @@
 -- Final part: Storage policies, indexes, triggers and default data
 
 -- Storage policies for new buckets
-CREATE POLICY "Users can upload their own timelapse videos" 
-ON storage.objects FOR INSERT 
+CREATE POLICY "Users can upload their own timelapse videos"
+ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
 
-CREATE POLICY "Users can view their own timelapse videos" 
-ON storage.objects FOR SELECT 
+CREATE POLICY "Users can view their own timelapse videos"
+ON storage.objects FOR SELECT
 USING (bucket_id = 'timelapse-videos' AND auth.uid()::text = (storage.foldername(name))[1]);
 
-CREATE POLICY "Anyone can view challenge templates" 
-ON storage.objects FOR SELECT 
+CREATE POLICY "Anyone can view challenge templates"
+ON storage.objects FOR SELECT
 USING (bucket_id = 'challenge-templates');
 
-CREATE POLICY "Anyone can view achievement icons" 
-ON storage.objects FOR SELECT 
+CREATE POLICY "Anyone can view achievement icons"
+ON storage.objects FOR SELECT
 USING (bucket_id = 'achievement-icons');
 
 -- Add indexes for better performance
@@ -45,24 +45,24 @@ CREATE TRIGGER update_user_feedback_updated_at
 BEFORE UPDATE ON public.user_feedback
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- Insert default challenge templates
-INSERT INTO public.challenge_templates (name, description, category, pose_instructions, points_per_photo) VALUES
-('Hand Tracking', 'Track changes in your hands over time', 'skin_condition', 
- ARRAY['Place both hands flat on a clean surface', 'Keep fingers naturally spread', 'Use consistent lighting', 'Take photo from same angle daily'], 10),
-('Face Progress', 'Monitor facial symptoms and changes', 'skin_condition',
- ARRAY['Look directly at camera with neutral expression', 'Use natural lighting from front', 'Keep hair away from face', 'No makeup or filters'], 15),
-('Posture Check', 'Track posture improvements over time', 'posture',
- ARRAY['Stand against a wall', 'Keep feet shoulder-width apart', 'Look straight ahead', 'Relax shoulders naturally'], 10),
-('Joint Mobility', 'Document joint flexibility and range of motion', 'joint_pain',
- ARRAY['Perform specific movement as instructed', 'Hold position for 3 seconds', 'Ensure full body is visible', 'Use consistent background'], 12)
-ON CONFLICT (name) DO NOTHING;
+-- -- Insert default challenge templates
+-- INSERT INTO public.challenge_templates (name, description, category, pose_instructions, points_per_photo) VALUES
+-- ('Hand Tracking', 'Track changes in your hands over time', 'skin_condition',
+--  ARRAY['Place both hands flat on a clean surface', 'Keep fingers naturally spread', 'Use consistent lighting', 'Take photo from same angle daily'], 10),
+-- ('Face Progress', 'Monitor facial symptoms and changes', 'skin_condition',
+--  ARRAY['Look directly at camera with neutral expression', 'Use natural lighting from front', 'Keep hair away from face', 'No makeup or filters'], 15),
+-- ('Posture Check', 'Track posture improvements over time', 'posture',
+--  ARRAY['Stand against a wall', 'Keep feet shoulder-width apart', 'Look straight ahead', 'Relax shoulders naturally'], 10),
+-- ('Joint Mobility', 'Document joint flexibility and range of motion', 'joint_pain',
+--  ARRAY['Perform specific movement as instructed', 'Hold position for 3 seconds', 'Ensure full body is visible', 'Use consistent background'], 12)
+-- ON CONFLICT (name) DO NOTHING;
 
--- Insert default achievements
-INSERT INTO public.achievements (name, description, category, requirement_type, requirement_value, points_reward, rarity) VALUES
-('First Steps', 'Take your first challenge photo', 'progress', 'total_photos', 1, 50, 'common'),
-('Week Warrior', 'Maintain a 7-day streak', 'streak', 'days_streak', 7, 100, 'common'),
-('Consistency Champion', 'Complete 30 photos in any challenge', 'consistency', 'total_photos', 30, 300, 'rare'),
-('Monthly Master', 'Maintain a 30-day streak', 'streak', 'days_streak', 30, 500, 'epic'),
-('Progress Pioneer', 'Complete your first full challenge', 'progress', 'challenges_completed', 1, 200, 'common'),
-('Legendary Streak', 'Maintain a 100-day streak', 'streak', 'days_streak', 100, 1000, 'legendary')
-ON CONFLICT (name) DO NOTHING;
+-- -- Insert default achievements
+-- INSERT INTO public.achievements (name, description, category, requirement_type, requirement_value, points_reward, rarity) VALUES
+-- ('First Steps', 'Take your first challenge photo', 'progress', 'total_photos', 1, 50, 'common'),
+-- ('Week Warrior', 'Maintain a 7-day streak', 'streak', 'days_streak', 7, 100, 'common'),
+-- ('Consistency Champion', 'Complete 30 photos in any challenge', 'consistency', 'total_photos', 30, 300, 'rare'),
+-- ('Monthly Master', 'Maintain a 30-day streak', 'streak', 'days_streak', 30, 500, 'epic'),
+-- ('Progress Pioneer', 'Complete your first full challenge', 'progress', 'challenges_completed', 1, 200, 'common'),
+-- ('Legendary Streak', 'Maintain a 100-day streak', 'streak', 'days_streak', 100, 1000, 'legendary')
+-- ON CONFLICT (name) DO NOTHING;
