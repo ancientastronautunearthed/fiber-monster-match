@@ -16,7 +16,8 @@ import {
   Trophy, 
   Calendar,
   Target,
-  Flame
+  Flame,
+  Plus
 } from 'lucide-react';
 
 interface Challenge {
@@ -30,6 +31,7 @@ interface Challenge {
 }
 
 interface Progress {
+  id: string;
   current_streak: number;
   longest_streak: number;
   total_photos: number;
@@ -46,6 +48,7 @@ const PhotoChallenge = () => {
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -55,11 +58,14 @@ const PhotoChallenge = () => {
 
   const fetchChallenges = async () => {
     try {
+      setLoading(true);
+
       const { data: challengesData, error: challengesError } = await supabase
         .from('photo_challenges')
         .select('*')
         .eq('user_id', user?.id)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
 
       if (challengesError) throw challengesError;
 
@@ -91,7 +97,7 @@ const PhotoChallenge = () => {
   };
 
   const handleTemplateSelected = () => {
-    // Refresh challenges after template selection
+    setShowTemplateSelector(false);
     fetchChallenges();
   };
 
@@ -172,25 +178,44 @@ const PhotoChallenge = () => {
 
       if (entryError) throw entryError;
 
-      // Update progress
+      // Update or create progress record
       const currentProgress = progress[selectedChallenge.id];
       const newStreak = currentProgress ? currentProgress.current_streak + 1 : 1;
       const newTotal = currentProgress ? currentProgress.total_photos + 1 : 1;
       const newPoints = currentProgress ? currentProgress.points_earned + 10 : 10;
+      const today = new Date().toISOString().split('T')[0];
 
-      const { error: progressError } = await supabase
-        .from('user_challenge_progress')
-        .upsert({
-          user_id: user.id,
-          challenge_id: selectedChallenge.id,
-          current_streak: newStreak,
-          longest_streak: Math.max(newStreak, currentProgress?.longest_streak || 0),
-          total_photos: newTotal,
-          points_earned: newPoints,
-          last_photo_date: new Date().toISOString().split('T')[0]
-        });
+      if (currentProgress) {
+        // Update existing progress
+        const { error: progressError } = await supabase
+          .from('user_challenge_progress')
+          .update({
+            current_streak: newStreak,
+            longest_streak: Math.max(newStreak, currentProgress.longest_streak),
+            total_photos: newTotal,
+            points_earned: newPoints,
+            last_photo_date: today,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentProgress.id);
 
-      if (progressError) throw progressError;
+        if (progressError) throw progressError;
+      } else {
+        // Create new progress record
+        const { error: progressError } = await supabase
+          .from('user_challenge_progress')
+          .insert({
+            user_id: user.id,
+            challenge_id: selectedChallenge.id,
+            current_streak: newStreak,
+            longest_streak: newStreak,
+            total_photos: newTotal,
+            points_earned: newPoints,
+            last_photo_date: today
+          });
+
+        if (progressError) throw progressError;
+      }
 
       // Award Light for photo challenge completion
       const isFirstPhoto = newTotal === 1;
@@ -216,7 +241,13 @@ const PhotoChallenge = () => {
         }
       );
 
-      // Refresh data
+      // Show success message with Light earned
+      toast({
+        title: "Photo Captured!",
+        description: `Day ${dayNumber} saved! +${totalLightEarned} Light earned.`,
+      });
+
+      // Refresh data to show updated progress
       await fetchChallenges();
 
     } catch (error) {
@@ -237,13 +268,43 @@ const PhotoChallenge = () => {
     return Math.min((challengeProgress.total_photos / challenge.target_days) * 100, 100);
   };
 
+  const canTakePhotoToday = (challengeId: string): boolean => {
+    const challengeProgress = progress[challengeId];
+    if (!challengeProgress || !challengeProgress.last_photo_date) return true;
+    
+    const today = new Date().toISOString().split('T')[0];
+    return challengeProgress.last_photo_date !== today;
+  };
+
+  const getDaysUntilNextPhoto = (challengeId: string): string => {
+    const challengeProgress = progress[challengeId];
+    if (!challengeProgress || !challengeProgress.last_photo_date) return "Ready now";
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (challengeProgress.last_photo_date === today) {
+      return "Come back tomorrow";
+    }
+    return "Ready now";
+  };
+
+  // Show template selector
+  if (showTemplateSelector) {
+    return (
+      <ChallengeTemplateSelector
+        onTemplateSelected={handleTemplateSelected}
+        onClose={() => setShowTemplateSelector(false)}
+      />
+    );
+  }
+
+  // Show camera interface
   if (showCamera && selectedChallenge) {
     return (
       <CameraCapture
         challengeId={selectedChallenge.id}
         dayNumber={getNextDayNumber(selectedChallenge.id)}
         guideImageUrl={selectedChallenge.pose_guide_url}
-        title={`${selectedChallenge.title} Guide`}
+        title={`${selectedChallenge.title} - Day ${getNextDayNumber(selectedChallenge.id)}`}
         instructions={[
           "Position yourself consistently each day",
           "Use good lighting for clear photos",
@@ -275,12 +336,21 @@ const PhotoChallenge = () => {
               <h1 className="text-xl font-bold">Photo Challenges</h1>
             </div>
           </div>
+          
+          <Button 
+            onClick={() => setShowTemplateSelector(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Challenge
+          </Button>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-6">
         {loading ? (
           <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading challenges...</p>
           </div>
         ) : challenges.length === 0 ? (
@@ -292,111 +362,122 @@ const PhotoChallenge = () => {
                 Start your first photo challenge to track your progress over time.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChallengeTemplateSelector 
-                onTemplateSelected={handleTemplateSelected}
-                trigger={
-                  <Button className="w-full">
-                    Create New Challenge
-                  </Button>
-                }
-              />
+            <CardContent className="text-center">
+              <Button 
+                onClick={() => setShowTemplateSelector(true)}
+                size="lg"
+                className="mt-4"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Create Your First Challenge
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          <>
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Active Challenges</h2>
-              <ChallengeTemplateSelector 
-                onTemplateSelected={handleTemplateSelected}
-                trigger={
-                  <Button variant="outline">
-                    New Challenge
-                  </Button>
-                }
-              />
-            </div>
-
-            <div className="grid gap-6">
+          <div className="grid gap-6">
+            {/* Active Challenges */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Active Challenges</h2>
+              
               {challenges.map((challenge) => {
                 const challengeProgress = progress[challenge.id];
                 const progressPercentage = getProgressPercentage(challenge.id);
-                const nextDay = getNextDayNumber(challenge.id);
-
+                const canTakePhoto = canTakePhotoToday(challenge.id);
+                const nextPhotoStatus = getDaysUntilNextPhoto(challenge.id);
+                
                 return (
-                  <Card key={challenge.id} className="overflow-hidden">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            {challenge.title}
-                            <Badge variant="outline">
+                  <Card key={challenge.id} className="relative">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">{challenge.title}</h3>
+                            <Badge variant="secondary" className="text-xs">
                               {challenge.target_area}
                             </Badge>
-                          </CardTitle>
-                          <CardDescription>{challenge.description}</CardDescription>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <div className="text-center">
-                            <div className="flex items-center gap-1 text-primary">
-                              <Flame className="h-4 w-4" />
-                              <span className="text-lg font-bold">
-                                {challengeProgress?.current_streak || 0}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">streak</p>
                           </div>
                           
-                          <div className="text-center">
-                            <div className="flex items-center gap-1 text-primary">
-                              <Trophy className="h-4 w-4" />
-                              <span className="text-lg font-bold">
+                          <p className="text-muted-foreground text-sm mb-4">
+                            {challenge.description}
+                          </p>
+                          
+                          {/* Progress Stats */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Day</span>
+                              </div>
+                              <div className="font-bold">
+                                {challengeProgress?.total_photos || 0} / {challenge.target_days}
+                              </div>
+                            </div>
+                            
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1">
+                                <Flame className="h-3 w-3 text-orange-500" />
+                                <span className="text-xs text-muted-foreground">Streak</span>
+                              </div>
+                              <div className="font-bold text-orange-600">
+                                {challengeProgress?.current_streak || 0}
+                              </div>
+                            </div>
+                            
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1">
+                                <Trophy className="h-3 w-3 text-yellow-500" />
+                                <span className="text-xs text-muted-foreground">Best</span>
+                              </div>
+                              <div className="font-bold text-yellow-600">
+                                {challengeProgress?.longest_streak || 0}
+                              </div>
+                            </div>
+                            
+                            <div className="text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1">
+                                <Target className="h-3 w-3 text-primary" />
+                                <span className="text-xs text-muted-foreground">Light</span>
+                              </div>
+                              <div className="font-bold text-primary">
                                 {challengeProgress?.points_earned || 0}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Progress</span>
+                              <span className="text-sm text-muted-foreground">
+                                {Math.round(progressPercentage)}%
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground">points</p>
+                            <Progress value={progressPercentage} className="h-2" />
                           </div>
                         </div>
                       </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm text-muted-foreground">Progress</span>
-                          <span className="text-sm font-medium">
-                            {challengeProgress?.total_photos || 0} / {challenge.target_days} days
-                          </span>
+                      
+                      {/* Action Button */}
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          {nextPhotoStatus}
                         </div>
-                        <Progress value={progressPercentage} className="h-2" />
+                        
+                        <Button
+                          onClick={() => startCamera(challenge)}
+                          disabled={!canTakePhoto}
+                          className="flex items-center gap-2"
+                        >
+                          <Camera className="h-4 w-4" />
+                          {canTakePhoto ? 'Take Photo' : 'Photo Taken Today'}
+                        </Button>
                       </div>
-
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Day {nextDay}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Target className="h-4 w-4" />
-                          <span>{challenge.target_days - (challengeProgress?.total_photos || 0)} days left</span>
-                        </div>
-                      </div>
-
-                      <Button 
-                        onClick={() => startCamera(challenge)}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <Camera className="h-5 w-5 mr-2" />
-                        Take Day {nextDay} Photo
-                      </Button>
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
-          </>
+          </div>
         )}
       </main>
     </div>
