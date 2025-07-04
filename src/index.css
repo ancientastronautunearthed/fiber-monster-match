@@ -150,3 +150,68 @@
     }
   }
 }
+/* Add these styles to src/index.css or your main CSS file */
+
+/* Ensure video elements display properly */
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Camera capture specific styles */
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/* Prevent video from being hidden by other elements */
+.camera-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.camera-container video {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure video plays on mobile devices */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+/* Fix for iOS Safari video display issues */
+video {
+  -webkit-playsinline: true;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Mobile-specific camera fixes */
+@media (max-width: 768px) {
+  .camera-video {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+  }
+  
+  /* Prevent zoom on double tap */
+  .camera-container {
+    touch-action: manipulation;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+  video {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
