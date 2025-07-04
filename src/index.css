@@ -2,108 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  Definition of the design system. All colors, gradients, fonts, etc.
-  are defined here as CSS variables.
-*/
 @layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
-
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ring: 215 20.2% 65.1%;
   }
 
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
+}
 
- @layer components {
+@layer components {
   /* --- Custom Video and Camera Styles --- */
-
-  /* Base styles for all video elements */
   video {
     display: block !important;
     max-width: 100%;
     height: auto;
     background-color: #000;
-    /* Fixes for iOS and older browsers */
     -webkit-playsinline: true;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
@@ -111,28 +70,23 @@
     backface-visibility: hidden;
   }
 
-  /* Specific styles for the main camera video */
   .camera-video {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  /* Container to manage video positioning and interaction */
   .camera-container {
     position: relative;
     overflow: hidden;
-    /* Prevent zoom on double tap on touch devices */
     touch-action: manipulation;
   }
 
-  /* Ensure video is visible when autoplaying */
   video[autoplay] {
     opacity: 1 !important;
     visibility: visible !important;
   }
 
-  /* Hide default video controls for a custom UI */
   video::-webkit-media-controls,
   video::-webkit-media-controls-enclosure,
   video::-webkit-media-controls-panel,
@@ -140,7 +94,6 @@
     display: none !important;
   }
 
-  /* Overlay for UI elements on top of the camera */
   .camera-overlay {
     pointer-events: none;
     position: absolute;
@@ -155,15 +108,11 @@
     opacity: 0.3;
     mix-blend-mode: screen;
   }
-  
-  /* Ensure proper z-index layering for fixed elements */
+
   .fixed.inset-0 {
     isolation: isolate;
   }
 
-  /* --- Mobile and High-DPI Screen Adjustments --- */
-
-  /* Fullscreen camera view on mobile devices */
   @media (max-width: 768px) {
     .camera-container video {
       position: fixed !important;
@@ -175,127 +124,10 @@
     }
   }
 
-  /* Optimizations for high-resolution displays */
   @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
     video {
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
-  }
-}
-/* Add these styles to your existing src/index.css file */
-
-/* Camera-specific styles to ensure video displays properly */
-@layer components {
-  /* Ensure video elements display properly */
-  video {
-    display: block !important;
-    max-width: 100%;
-    height: auto;
-    background-color: #000;
-  }
-
-  /* Camera capture specific styles */
-  .camera-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #000;
-  }
-
-  /* Prevent video from being hidden by other elements */
-  .camera-container {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .camera-container video {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Ensure video plays on mobile devices */
-  video::-webkit-media-controls {
-    display: none !important;
-  }
-
-  video::-webkit-media-controls-enclosure {
-    display: none !important;
-  }
-
-  video::-webkit-media-controls-panel {
-    display: none !important;
-  }
-
-  video::-webkit-media-controls-play-button {
-    display: none !important;
-  }
-
-  /* Fix for iOS Safari video display issues */
-  video {
-    -webkit-playsinline: true;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-
-  /* Ensure video is visible and not covered */
-  video[autoplay] {
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-
-  /* Mobile-specific camera fixes */
-  @media (max-width: 768px) {
-    .camera-video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
-    
-    /* Prevent zoom on double tap */
-    .camera-container {
-      touch-action: manipulation;
-    }
-    
-    /* Fix for mobile video display */
-    video {
-      position: fixed !important;
-      top: 0;
-      left: 0;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover !important;
-    }
-  }
-
-  /* High DPI display optimizations */
-  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
-    video {
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-    }
-  }
-  
-  /* Ensure proper z-index layering */
-  .fixed.inset-0 {
-    isolation: isolate;
-  }
-  
-  /* Camera overlay styles */
-  .camera-overlay {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-  }
-  
-  .camera-overlay img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    opacity: 0.3;
-    mix-blend-mode: screen;
   }
 }

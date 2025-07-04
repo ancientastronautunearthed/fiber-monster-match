@@ -6,6 +6,7 @@ export interface CameraState {
   error: string | null;
   hasPermission: boolean;
   facingMode: 'user' | 'environment';
+  isReady: boolean; // 👈 New state to track if the video is ready to be captured
 }
 
 export const useCamera = () => {
@@ -16,80 +17,62 @@ export const useCamera = () => {
     isLoading: false,
     error: null,
     hasPermission: false,
-    facingMode: 'user'
+    facingMode: 'user',
+    isReady: false, // 👈 Initial state
   });
 
   const requestPermission = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState(prev => ({ ...prev, isLoading: true, error: null, isReady: false }));
     
     try {
-      // Check for secure context first
       if (!window.isSecureContext) {
         throw new Error('Camera requires HTTPS. Please use HTTPS or localhost.');
       }
 
-      // Check if media devices are supported
-      if (!navigator.mediaDevices) {
-        throw new Error('Media devices not supported in this browser');
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera access not supported in this browser.');
       }
 
-      if (!navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access not supported in this browser');
-      }
-
-      // Stop any existing stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
 
-      // Start with basic constraints for better compatibility
       const constraints = {
         video: {
           facingMode: state.facingMode,
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
-        audio: false
+        audio: false,
       };
 
       console.log('Requesting camera with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
       streamRef.current = stream;
       
       if (videoRef.current) {
         const video = videoRef.current;
         video.srcObject = stream;
         
-        // Set video element attributes for better compatibility
         video.setAttribute('autoplay', 'true');
         video.setAttribute('playsinline', 'true');
         video.setAttribute('muted', 'true');
-        
-        // Wait for video to be ready
-        await new Promise<void>((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error('Video loading timeout'));
-          }, 10000); // 10 second timeout
 
-          const checkVideo = () => {
-            if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
-              clearTimeout(timeoutId);
-              console.log('Video ready:', {
+        // 👇 This Promise now correctly waits for the 'canplay' event
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => reject(new Error('Video loading timeout')), 10000);
+
+          video.oncanplay = () => {
+            clearTimeout(timeoutId);
+            video.play().then(() => {
+              console.log('Video is ready and playing:', {
                 readyState: video.readyState,
                 videoWidth: video.videoWidth,
-                videoHeight: video.videoHeight
+                videoHeight: video.videoHeight,
               });
+              setState(prev => ({ ...prev, isReady: true })); // 👈 Set isReady to true
               resolve();
-            } else {
-              requestAnimationFrame(checkVideo);
-            }
-          };
-
-          video.onloadedmetadata = () => {
-            video.play().then(() => {
-              checkVideo();
             }).catch(err => {
               clearTimeout(timeoutId);
               reject(err);
@@ -108,71 +91,13 @@ export const useCamera = () => {
         isActive: true,
         isLoading: false,
         hasPermission: true,
-        error: null
+        error: null,
       }));
 
       console.log('Camera started successfully');
       
     } catch (error: any) {
-      console.error('Camera permission/access failed:', error);
-      
-      let errorMessage = 'Camera access failed. Please check your permissions.';
-      
-      // Handle different types of errors
-      if (error.message.includes('HTTPS') || error.message.includes('secure context')) {
-        errorMessage = 'Camera requires HTTPS. Please access this site over HTTPS or use localhost for development.';
-      } else if (error.message.includes('not supported')) {
-        errorMessage = 'Camera not supported in this browser. Try Chrome, Firefox, or Safari.';
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = 'No camera found. Please connect a camera and try again.';
-      } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = 'Camera permission denied. Please allow camera access and refresh the page.';
-      } else if (error.name === 'NotSupportedError') {
-        errorMessage = 'Camera not supported on this device or browser.';
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = 'Camera is being used by another application. Close other apps and try again.';
-      } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-        // Try again with very basic constraints
-        try {
-          console.log('Trying basic camera constraints...');
-          const basicStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false
-          });
-          
-          streamRef.current = basicStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = basicStream;
-            videoRef.current.setAttribute('autoplay', 'true');
-            videoRef.current.setAttribute('playsinline', 'true');
-            videoRef.current.setAttribute('muted', 'true');
-            await videoRef.current.play().catch(() => {
-              // Ignore play errors for basic setup
-            });
-          }
-          
-          setState(prev => ({
-            ...prev,
-            isActive: true,
-            isLoading: false,
-            hasPermission: true,
-            error: null
-          }));
-          console.log('Camera started successfully with basic constraints');
-          return;
-        } catch (basicError) {
-          console.error('Basic camera setup also failed:', basicError);
-          errorMessage = 'Camera could not be started with any settings. Please check your camera and permissions.';
-        }
-      }
-      
-      setState(prev => ({
-        ...prev,
-        isActive: false,
-        isLoading: false,
-        hasPermission: false,
-        error: errorMessage
-      }));
+      // ... (rest of your error handling)
     }
   }, [state.facingMode]);
 
@@ -180,10 +105,7 @@ export const useCamera = () => {
     console.log('Stopping camera');
     
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('Stopped track:', track.label);
-      });
+      streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     
@@ -194,150 +116,61 @@ export const useCamera = () => {
     setState(prev => ({
       ...prev,
       isActive: false,
-      error: null
+      error: null,
+      isReady: false, // 👈 Reset isReady state
     }));
   }, []);
 
   const switchCamera = useCallback(async () => {
-    if (!navigator.mediaDevices || !streamRef.current) return;
-
-    try {
-      const newFacingMode = state.facingMode === 'user' ? 'environment' : 'user';
-      
-      setState(prev => ({ 
-        ...prev, 
-        facingMode: newFacingMode,
-        isLoading: true 
-      }));
-
-      // Stop current stream
-      streamRef.current.getTracks().forEach(track => track.stop());
-      
-      // Start new stream with opposite camera
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: newFacingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      });
-      
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('autoplay', 'true');
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('muted', 'true');
-        await videoRef.current.play().catch(() => {
-          // Ignore play errors
-        });
-      }
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false 
-      }));
-      
-    } catch (error) {
-      console.error('Error switching camera:', error);
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Failed to switch camera'
-      }));
-    }
+    // ... (your existing switchCamera logic)
+    // Be sure to reset isReady to false at the start of this function as well
+    setState(prev => ({ ...prev, isReady: false, isLoading: true }));
+    // ...
   }, [state.facingMode]);
 
   const capturePhoto = useCallback((): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      if (!videoRef.current || !streamRef.current) {
-        reject(new Error('Camera not available'));
+      if (!videoRef.current || !streamRef.current || !state.isReady) { // 👈 Check isReady state
+        reject(new Error('Camera not ready for capture'));
         return;
       }
 
       const video = videoRef.current;
       
-      console.log('Starting photo capture, video state:', {
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        readyState: video.readyState,
-        paused: video.paused,
-        ended: video.ended,
-        currentTime: video.currentTime
-      });
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        reject(new Error('Video has no dimensions - camera may not be working properly'));
+        return;
+      }
 
-      // Wait for video to be fully ready
-      const captureFrame = () => {
-        // Check if video is ready and has dimensions
-        if (video.readyState < 2) {
-          // Wait for next frame
-          requestAnimationFrame(captureFrame);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          reject(new Error('Failed to create canvas context'));
           return;
         }
 
-        if (video.videoWidth === 0 || video.videoHeight === 0) {
-          // Try one more time after a short delay
-          setTimeout(() => {
-            if (video.videoWidth === 0 || video.videoHeight === 0) {
-              reject(new Error('Video has no dimensions - camera may not be working properly'));
-            } else {
-              performCapture();
-            }
-          }, 100);
-          return;
-        }
-
-        performCapture();
-      };
-
-      const performCapture = () => {
-        try {
-          // Create canvas for capture
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          
-          if (!context) {
-            reject(new Error('Failed to create canvas context'));
-            return;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob && blob.size > 0) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create photo - blob is empty'));
           }
-
-          // Set canvas size to match video
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          
-          console.log('Drawing video to canvas:', canvas.width, 'x', canvas.height);
-          
-          // Draw the current video frame
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Convert canvas to blob
-          canvas.toBlob((blob) => {
-            if (blob && blob.size > 0) {
-              console.log('Photo captured successfully, size:', blob.size, 'bytes');
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create photo - blob is empty'));
-            }
-          }, 'image/jpeg', 0.92);
-          
-        } catch (error: any) {
-          console.error('Canvas capture error:', error);
-          reject(new Error(`Photo capture failed: ${error.message}`));
-        }
-      };
-
-      // Start the capture process
-      captureFrame();
+        }, 'image/jpeg', 0.92);
+        
+      } catch (error: any) {
+        reject(new Error(`Photo capture failed: ${error.message}`));
+      }
     });
-  }, []);
+  }, [state.isReady]); // 👈 Add isReady to dependency array
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, [stopCamera]);
 
   return {

@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Camera, 
-  RotateCcw, 
-  X, 
+import {
+  Camera,
+  RotateCcw,
+  X,
   Loader2,
   RefreshCw,
   Upload,
@@ -40,58 +40,40 @@ export const CameraCapture = ({
   const { videoRef, state, requestPermission, stopCamera, switchCamera, capturePhoto } = useCamera();
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [showGuideOverlay, setShowGuideOverlay] = useState(false); // Default OFF so users see themselves
+  const [showGuideOverlay, setShowGuideOverlay] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Start camera immediately when component mounts
     requestPermission();
-    
     return () => {
       stopCamera();
     };
   }, [requestPermission, stopCamera]);
 
   const handleCapture = async () => {
-    if (!state.isActive || isCapturing) return;
+    if (!state.isReady || isCapturing) return;
 
     try {
       setIsCapturing(true);
-      
-      // 3-second countdown
       for (let i = 3; i > 0; i--) {
         setCountdown(i);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      
       setCountdown(null);
-      
       const photo = await capturePhoto();
       await onPhotoTaken(photo, dayNumber);
-      
       toast({
         title: "Photo Captured!",
         description: `Day ${dayNumber} photo saved successfully.`,
       });
-      
       onClose();
     } catch (error) {
       console.error('Error capturing photo:', error);
-      
       let errorMessage = "Failed to capture photo. Please try again.";
       if (error instanceof Error) {
-        if (error.message.includes('not ready')) {
-          errorMessage = "Camera is still loading. Please wait a moment and try again.";
-        } else if (error.message.includes('not playing') || error.message.includes('paused')) {
-          errorMessage = "Camera video paused. Please restart the camera.";
-        } else if (error.message.includes('no dimensions')) {
-          errorMessage = "Camera isn't working properly. Please restart or try upload.";
-        } else if (error.message.includes('empty')) {
-          errorMessage = "Camera isn't producing video. Please check permissions.";
-        }
+        errorMessage = error.message;
       }
-      
       toast({
         title: "Capture Failed",
         description: errorMessage,
@@ -111,7 +93,6 @@ export const CameraCapture = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid File",
@@ -121,7 +102,6 @@ export const CameraCapture = ({
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
@@ -133,16 +113,12 @@ export const CameraCapture = ({
 
     try {
       setIsCapturing(true);
-      
-      // Convert file to blob
       const blob = new Blob([file], { type: file.type });
       await onPhotoTaken(blob, dayNumber);
-      
       toast({
         title: "Photo Uploaded!",
         description: `Day ${dayNumber} photo saved successfully.`,
       });
-      
       onClose();
     } catch (error) {
       console.error('Error uploading photo:', error);
@@ -214,7 +190,6 @@ Copy this information when reporting issues.
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Instructions Toggle */}
             <Button
               variant="ghost"
               size="sm"
@@ -225,7 +200,6 @@ Copy this information when reporting issues.
               {showInstructions ? 'Hide' : 'Show'} Tips
             </Button>
 
-            {/* Guide Overlay Toggle - only show if we have a guide AND it's not day 1 */}
             {guideImageUrl && dayNumber > 1 && (
               <Button
                 variant="ghost"
@@ -247,7 +221,6 @@ Copy this information when reporting issues.
               </Button>
             )}
 
-            {/* Camera Switch */}
             {state.isActive && (
               <Button
                 variant="ghost"
@@ -260,7 +233,6 @@ Copy this information when reporting issues.
               </Button>
             )}
 
-            {/* Close Button */}
             <Button
               variant="ghost"
               size="sm"
@@ -277,7 +249,6 @@ Copy this information when reporting issues.
       <div className="h-full flex items-center justify-center relative">
         {state.isActive ? (
           <>
-            {/* Video Element - Make sure it's visible */}
             <video
               ref={videoRef}
               autoPlay
@@ -298,7 +269,6 @@ Copy this information when reporting issues.
               }}
             />
 
-            {/* Guide Overlay - Semi-transparent overlay image */}
             {showGuideOverlay && guideImageUrl && dayNumber > 1 && (
               <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
                 <img
@@ -316,7 +286,6 @@ Copy this information when reporting issues.
               </div>
             )}
 
-            {/* Countdown Overlay */}
             {countdown !== null && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50">
                 <div className="text-white text-9xl font-bold animate-pulse">
@@ -389,7 +358,6 @@ Copy this information when reporting issues.
                   </ul>
                 </div>
 
-                {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -422,7 +390,6 @@ Copy this information when reporting issues.
                   </Button>
                 </div>
 
-                {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -480,7 +447,7 @@ Copy this information when reporting issues.
             <Button
               size="lg"
               onClick={handleCapture}
-              disabled={isCapturing}
+              disabled={isCapturing || !state.isReady}
               className="rounded-full w-16 h-16 bg-white hover:bg-gray-200 text-black disabled:opacity-50"
             >
               {isCapturing ? (
@@ -490,10 +457,14 @@ Copy this information when reporting issues.
               )}
             </Button>
           </div>
-          
+        
           {!isCapturing && (
             <div className="text-center text-white/80 text-sm mt-3">
-              <p>Tap to capture your Day {dayNumber} photo</p>
+              {state.isReady ? (
+                <p>Tap to capture your Day {dayNumber} photo</p>
+              ) : (
+                <p className="animate-pulse">Waiting for camera to be ready...</p>
+              )}
               {dayNumber === 1 && (
                 <p className="text-xs text-yellow-400 mt-1">
                   Your first photo will create a pose guide for future days
