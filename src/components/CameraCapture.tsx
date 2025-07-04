@@ -44,6 +44,7 @@ export const CameraCapture = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showGuideOverlay, setShowGuideOverlay] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,6 +52,47 @@ export const CameraCapture = ({
       stopCamera();
     };
   }, [stopCamera]);
+
+  // Monitor video readiness
+  useEffect(() => {
+    if (!videoRef.current || !state.isActive) {
+      setVideoReady(false);
+      return;
+    }
+
+    const video = videoRef.current;
+    
+    const checkVideoReady = () => {
+      const isReady = video.readyState >= 2 && 
+                     video.videoWidth > 0 && 
+                     video.videoHeight > 0 && 
+                     !video.paused && 
+                     !video.ended &&
+                     video.currentTime > 0;
+      
+      setVideoReady(isReady);
+    };
+
+    // Check immediately
+    checkVideoReady();
+
+    // Set up interval to check periodically
+    const interval = setInterval(checkVideoReady, 1000);
+
+    // Listen for video events
+    video.addEventListener('loadedmetadata', checkVideoReady);
+    video.addEventListener('playing', checkVideoReady);
+    video.addEventListener('pause', checkVideoReady);
+    video.addEventListener('ended', checkVideoReady);
+
+    return () => {
+      clearInterval(interval);
+      video.removeEventListener('loadedmetadata', checkVideoReady);
+      video.removeEventListener('playing', checkVideoReady);
+      video.removeEventListener('pause', checkVideoReady);
+      video.removeEventListener('ended', checkVideoReady);
+    };
+  }, [state.isActive, videoRef]);
 
   const handleStartCamera = async () => {
     setShowGuide(false);
@@ -63,6 +105,16 @@ export const CameraCapture = ({
 
   const handleCapture = async () => {
     if (!state.isActive || isCapturing) return;
+
+    // Check video readiness before attempting capture
+    if (!videoReady) {
+      toast({
+        title: "Video Not Ready",
+        description: "Please wait for the camera to fully load before taking a photo.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       setIsCapturing(true);
@@ -86,9 +138,23 @@ export const CameraCapture = ({
       onClose();
     } catch (error) {
       console.error('Error capturing photo:', error);
+      
+      let errorMessage = "Failed to capture photo. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes('not ready')) {
+          errorMessage = "Camera is still loading. Please wait a moment and try again.";
+        } else if (error.message.includes('not playing')) {
+          errorMessage = "Camera stopped working. Please restart the camera.";
+        } else if (error.message.includes('no dimensions')) {
+          errorMessage = "Camera video isn't loading properly. Please restart the camera.";
+        } else if (error.message.includes('empty')) {
+          errorMessage = "Camera isn't producing video. Please check your camera and try again.";
+        }
+      }
+      
       toast({
         title: "Capture Failed",
-        description: error instanceof Error ? error.message : "Failed to capture photo. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -272,10 +338,13 @@ Copy this information when reporting issues.
               autoPlay
               playsInline
               muted
+              controls={false}
               className="w-full h-full object-cover"
               style={{ 
                 transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none' 
               }}
+              onLoadedMetadata={() => console.log('Video metadata loaded in component')}
+              onPlaying={() => console.log('Video started playing in component')}
             />
             
             {/* Guide Overlay */}
@@ -308,8 +377,8 @@ Copy this information when reporting issues.
                 <Button
                   size="lg"
                   onClick={handleCapture}
-                  disabled={isCapturing || !state.isActive}
-                  className="rounded-full w-16 h-16 bg-white hover:bg-gray-200 text-black"
+                  disabled={isCapturing || !state.isActive || !videoReady}
+                  className="rounded-full w-16 h-16 bg-white hover:bg-gray-200 text-black disabled:opacity-50"
                 >
                   {isCapturing ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -320,9 +389,16 @@ Copy this information when reporting issues.
               </div>
               
               {!isCapturing && (
-                <p className="text-center text-white/80 text-sm mt-3">
-                  Tap to capture your Day {dayNumber} photo
-                </p>
+                <div className="text-center text-white/80 text-sm mt-3">
+                  {!videoReady ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Waiting for camera to load...</span>
+                    </div>
+                  ) : (
+                    `Tap to capture your Day ${dayNumber} photo`
+                  )}
+                </div>
               )}
             </div>
           </>
@@ -455,8 +531,10 @@ Copy this information when reporting issues.
       {state.isActive && (
         <div className="absolute top-4 left-4 z-20">
           <div className="flex items-center gap-2 bg-black/50 rounded-full px-3 py-1">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-white text-xs">Recording</span>
+            <div className={`w-2 h-2 rounded-full ${videoReady ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
+            <span className="text-white text-xs">
+              {videoReady ? 'Ready' : 'Loading...'}
+            </span>
           </div>
         </div>
       )}

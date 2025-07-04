@@ -72,7 +72,7 @@ export const useCamera = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        // Wait for video metadata to load
+        // Wait for video metadata to load and ensure it's playing
         await new Promise<void>((resolve, reject) => {
           if (!videoRef.current) {
             reject(new Error('Video element not available'));
@@ -80,23 +80,49 @@ export const useCamera = () => {
           }
 
           const video = videoRef.current;
+          let resolved = false;
           
-          const onLoadedMetadata = () => {
+          const onLoadedMetadata = async () => {
             console.log('Video metadata loaded:', {
               videoWidth: video.videoWidth,
               videoHeight: video.videoHeight,
               readyState: video.readyState
             });
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            resolve();
+            
+            // Ensure video starts playing
+            try {
+              await video.play();
+              console.log('Video is now playing');
+              
+              // Wait a bit more to ensure the video is actually rendering frames
+              setTimeout(() => {
+                if (!resolved) {
+                  resolved = true;
+                  video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                  video.removeEventListener('error', onError);
+                  resolve();
+                }
+              }, 500); // Give 500ms for video to stabilize
+              
+            } catch (playError) {
+              console.error('Video play failed:', playError);
+              if (!resolved) {
+                resolved = true;
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video.removeEventListener('error', onError);
+                reject(new Error('Video failed to start playing'));
+              }
+            }
           };
 
           const onError = (error: Event) => {
             console.error('Video error:', error);
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            reject(new Error('Failed to load video'));
+            if (!resolved) {
+              resolved = true;
+              video.removeEventListener('loadedmetadata', onLoadedMetadata);
+              video.removeEventListener('error', onError);
+              reject(new Error('Failed to load video'));
+            }
           };
 
           video.addEventListener('loadedmetadata', onLoadedMetadata);
@@ -106,6 +132,16 @@ export const useCamera = () => {
           if (video.readyState >= 1) {
             onLoadedMetadata();
           }
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              video.removeEventListener('loadedmetadata', onLoadedMetadata);
+              video.removeEventListener('error', onError);
+              reject(new Error('Timeout waiting for video to load'));
+            }
+          }, 10000);
         });
       }
       
@@ -255,6 +291,67 @@ export const useCamera = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Wait for video to be ready and playing
+        await new Promise<void>((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error('Video element not available'));
+            return;
+          }
+
+          const video = videoRef.current;
+          let resolved = false;
+          
+          const onReady = async () => {
+            try {
+              await video.play();
+              console.log('Switched camera is now playing');
+              
+              setTimeout(() => {
+                if (!resolved) {
+                  resolved = true;
+                  video.removeEventListener('loadedmetadata', onReady);
+                  video.removeEventListener('error', onError);
+                  resolve();
+                }
+              }, 300);
+              
+            } catch (playError) {
+              console.error('Switched video play failed:', playError);
+              if (!resolved) {
+                resolved = true;
+                video.removeEventListener('loadedmetadata', onReady);
+                video.removeEventListener('error', onError);
+                reject(new Error('Switched video failed to start playing'));
+              }
+            }
+          };
+
+          const onError = (error: Event) => {
+            if (!resolved) {
+              resolved = true;
+              video.removeEventListener('loadedmetadata', onReady);
+              video.removeEventListener('error', onError);
+              reject(new Error('Failed to load switched video'));
+            }
+          };
+
+          video.addEventListener('loadedmetadata', onReady);
+          video.addEventListener('error', onError);
+
+          if (video.readyState >= 1) {
+            onReady();
+          }
+          
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              video.removeEventListener('loadedmetadata', onReady);
+              video.removeEventListener('error', onError);
+              reject(new Error('Timeout waiting for switched video'));
+            }
+          }, 5000);
+        });
       }
       
       setState(prev => ({ 
@@ -286,17 +383,29 @@ export const useCamera = () => {
         videoHeight: video.videoHeight,
         readyState: video.readyState,
         paused: video.paused,
-        ended: video.ended
+        ended: video.ended,
+        currentTime: video.currentTime
       });
 
-      // Ensure video is playing and has valid dimensions
+      // Enhanced readiness checks
       if (video.readyState < 2) {
-        reject(new Error('Video not ready for capture'));
+        reject(new Error('Video not ready - still loading metadata'));
         return;
       }
 
       if (video.videoWidth === 0 || video.videoHeight === 0) {
-        reject(new Error('Video has no dimensions'));
+        reject(new Error('Video has no dimensions - camera may not be working'));
+        return;
+      }
+
+      if (video.paused || video.ended) {
+        reject(new Error('Video is not playing - camera stream may have stopped'));
+        return;
+      }
+
+      // Additional check: ensure we have recent video data
+      if (video.currentTime === 0) {
+        reject(new Error('Video has no time data - stream may not be active'));
         return;
       }
 
@@ -318,6 +427,13 @@ export const useCamera = () => {
         
         // Draw the current video frame
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Check if we actually drew something
+        const imageData = context.getImageData(0, 0, 1, 1);
+        if (imageData.data.every(value => value === 0)) {
+          reject(new Error('Video frame appears to be empty - camera may not be working'));
+          return;
+        }
         
         // Convert canvas to blob
         canvas.toBlob((blob) => {
