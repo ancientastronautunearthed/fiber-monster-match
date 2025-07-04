@@ -43,6 +43,7 @@ export const CameraCapture = ({
   const [showGuideOverlay, setShowGuideOverlay] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     requestPermission();
@@ -50,6 +51,41 @@ export const CameraCapture = ({
       stopCamera();
     };
   }, [requestPermission, stopCamera]);
+
+  // Ensure video element is visible when stream is active
+  useEffect(() => {
+    if (state.isActive && videoRef.current) {
+      const video = videoRef.current;
+      // Force video to be visible
+      video.style.display = 'block';
+      video.style.visibility = 'visible';
+      video.style.opacity = '1';
+      video.style.position = 'absolute';
+      video.style.top = '0';
+      video.style.left = '0';
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.objectFit = 'cover';
+      video.style.backgroundColor = 'transparent';
+      video.style.zIndex = '1';
+      
+      // For front camera, apply mirror effect
+      if (state.facingMode === 'user') {
+        video.style.transform = 'scaleX(-1)';
+      } else {
+        video.style.transform = 'none';
+      }
+      
+      console.log('Video element styles applied:', {
+        display: video.style.display,
+        visibility: video.style.visibility,
+        opacity: video.style.opacity,
+        width: video.clientWidth,
+        height: video.clientHeight,
+        parent: video.parentElement?.tagName,
+      });
+    }
+  }, [state.isActive, state.facingMode, videoRef]);
 
   const handleCapture = async () => {
     if (!state.isReady || isCapturing) return;
@@ -145,11 +181,21 @@ export const CameraCapture = ({
       hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
       userAgent: navigator.userAgent,
       error: state.error,
+      isActive: state.isActive,
+      isReady: state.isReady,
       videoState: videoRef.current ? {
         readyState: videoRef.current.readyState,
         videoWidth: videoRef.current.videoWidth,
         videoHeight: videoRef.current.videoHeight,
-        paused: videoRef.current.paused
+        clientWidth: videoRef.current.clientWidth,
+        clientHeight: videoRef.current.clientHeight,
+        paused: videoRef.current.paused,
+        srcObject: !!videoRef.current.srcObject,
+        style: {
+          display: videoRef.current.style.display,
+          visibility: videoRef.current.style.visibility,
+          opacity: videoRef.current.style.opacity,
+        }
       } : null
     };
 
@@ -162,6 +208,8 @@ Debug Information:
 - getUserMedia API: ${debugInfo.hasGetUserMedia}
 - Browser: ${debugInfo.userAgent.split(' ').slice(-2).join(' ')}
 - Current Error: ${debugInfo.error}
+- Camera Active: ${debugInfo.isActive}
+- Camera Ready: ${debugInfo.isReady}
 - Video State: ${JSON.stringify(debugInfo.videoState, null, 2)}
 
 Copy this information when reporting issues.
@@ -178,7 +226,7 @@ Copy this information when reporting issues.
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <div className="fixed inset-0 bg-black z-50" ref={containerRef}>
       {/* Header Controls */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4">
         <div className="flex items-center justify-between">
@@ -246,28 +294,31 @@ Copy this information when reporting issues.
       </div>
 
       {/* Camera View / Error State */}
-      <div className="h-full flex items-center justify-center relative">
+      <div className="h-full w-full relative">
         {state.isActive ? (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-              style={{
-                transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                display: 'block',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                backgroundColor: '#000',
-                zIndex: 1
-              }}
-            />
+          <div className="absolute inset-0">
+            {/* Video container with explicit positioning */}
+            <div className="absolute inset-0 bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="camera-video"
+                style={{
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  backgroundColor: 'transparent',
+                  zIndex: 1,
+                  transform: state.facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                }}
+              />
+            </div>
 
             {showGuideOverlay && guideImageUrl && dayNumber > 1 && (
               <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
@@ -293,7 +344,7 @@ Copy this information when reporting issues.
                 </div>
               </div>
             )}
-          </>
+          </div>
         ) : state.isLoading ? (
           <div className="flex items-center justify-center h-full bg-black">
             <Card className="bg-black/80 border-white/20">
@@ -304,8 +355,8 @@ Copy this information when reporting issues.
             </Card>
           </div>
         ) : state.error ? (
-          <div className="flex items-center justify-center h-full bg-black">
-            <Card className="bg-black/80 border-white/20 max-w-md w-full mx-4">
+          <div className="flex items-center justify-center h-full bg-black p-4">
+            <Card className="bg-black/80 border-white/20 max-w-md w-full">
               <CardContent className="p-6">
                 <Alert className="bg-red-900/20 border-red-900/50 text-white mb-4">
                   <AlertDescription>{state.error}</AlertDescription>
@@ -323,24 +374,24 @@ Copy this information when reporting issues.
                     ) : (
                       <Upload className="h-4 w-4 mr-2" />
                     )}
-                    Upload
+                    Upload Photo Instead
                   </Button>
 
                   <Button
                     onClick={showDebugModal}
                     variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20"
-                    title="Copy Debug Info"
+                    size="sm"
+                    className="w-full text-white hover:bg-white/20"
                   >
-                    <Info className="h-4 w-4" />
+                    <Info className="h-4 w-4 mr-2" />
+                    Copy Debug Info
                   </Button>
                 </div>
 
                 <Button
                   onClick={onClose}
                   variant="ghost"
-                  className="w-full text-white hover:bg-white/20"
+                  className="w-full mt-2 text-white hover:bg-white/20"
                 >
                   Cancel
                 </Button>
@@ -348,13 +399,12 @@ Copy this information when reporting issues.
                 <div className="mt-4 p-3 bg-white/10 rounded text-sm text-white/80">
                   <p className="font-medium mb-2">Troubleshooting tips:</p>
                   <ul className="text-xs space-y-1">
-                    <li>• <strong>HTTPS Required:</strong> Camera only works on HTTPS or localhost</li>
-                    <li>• Allow camera permissions in your browser settings</li>
-                    <li>• Close other apps using the camera (Zoom, Teams, etc.)</li>
+                    <li>• Camera only works on HTTPS or localhost</li>
+                    <li>• Allow camera permissions when prompted</li>
+                    <li>• Close other apps using the camera</li>
                     <li>• Try refreshing the page</li>
-                    <li>• Use Chrome, Firefox, or Safari for best support</li>
-                    <li>• You can upload a photo instead if camera isn't working</li>
-                    <li>• Click the ⓘ icon to copy debug info for support</li>
+                    <li>• Use Chrome, Firefox, or Safari</li>
+                    <li>• Upload a photo if camera won't work</li>
                   </ul>
                 </div>
 
@@ -479,8 +529,8 @@ Copy this information when reporting issues.
       {state.isActive && (
         <div className="absolute top-20 left-4 z-20">
           <div className="flex items-center gap-2 bg-black/50 rounded-full px-3 py-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-white text-xs">Live</span>
+            <div className={`w-2 h-2 rounded-full ${state.isReady ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
+            <span className="text-white text-xs">{state.isReady ? 'Live' : 'Loading...'}</span>
           </div>
         </div>
       )}
