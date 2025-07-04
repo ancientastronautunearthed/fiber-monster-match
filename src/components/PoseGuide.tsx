@@ -1,83 +1,108 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Eye, EyeOff, Info } from 'lucide-react';
-import sampleProgressPhoto from '@/assets/sample-progress-photo.jpg';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Camera,
+  CheckCircle,
+  ArrowRight,
+  Lightbulb
+} from 'lucide-react';
 
 interface PoseGuideProps {
   guideImageUrl?: string;
   title: string;
   instructions: string[];
-  onNext?: () => void;
+  onNext: () => void;
 }
 
-export const PoseGuide = ({ 
-  guideImageUrl, 
-  title, 
+export const PoseGuide = ({
+  guideImageUrl,
+  title,
   instructions,
-  onNext 
+  onNext
 }: PoseGuideProps) => {
-  const [showOverlay, setShowOverlay] = useState(true);
-
   return (
-    <div className="relative w-full h-full">
-      {/* Guide Image Overlay */}
-      {showOverlay && (
-        <div className="absolute inset-0 z-10 pointer-events-none">
-          <img
-            src={guideImageUrl || sampleProgressPhoto}
-            alt="Pose guide"
-            className="w-full h-full object-contain opacity-30"
-          />
-          <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">
-              {guideImageUrl ? 'Guide overlay' : 'Sample photo guide'}
+    <div className="flex flex-col lg:flex-row h-full">
+      {/* Guide Image */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-muted/5">
+        {guideImageUrl ? (
+          <div className="relative max-w-md">
+            <img
+              src={guideImageUrl}
+              alt="Pose guide"
+              className="w-full h-auto rounded-lg shadow-lg border"
+            />
+            <Badge 
+              variant="secondary" 
+              className="absolute top-2 left-2 bg-background/90"
+            >
+              Guide
+            </Badge>
+          </div>
+        ) : (
+          <div className="text-center">
+            <Camera className="h-24 w-24 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              No pose guide available for this challenge
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Instructions Panel */}
-      <Card className="absolute bottom-4 left-4 right-4 z-20 bg-background/95 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">{title}</h3>
+      {/* Instructions */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Camera className="h-6 w-6 text-primary" />
             </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowOverlay(!showOverlay)}
-              className="h-8 w-8 p-0"
-            >
-              {showOverlay ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+            <CardTitle className="text-xl">{title}</CardTitle>
+            <CardDescription>
+              Follow these tips for the best photo
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
+            {/* Instructions List */}
+            <div className="space-y-3">
+              {instructions.map((instruction, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {instruction}
+                  </p>
+                </div>
+              ))}
+            </div>
 
-          <div className="space-y-2 mb-4">
-            {instructions.map((instruction, index) => (
-              <div key={index} className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center font-medium">
-                  {index + 1}
-                </span>
-                <p className="text-sm text-muted-foreground">{instruction}</p>
+            {/* Tips Section */}
+            <div className="bg-muted/50 rounded-lg p-4 mt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Pro Tips</span>
               </div>
-            ))}
-          </div>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• Good lighting helps create clearer progress photos</li>
+                <li>• Try to take photos at the same time each day</li>
+                <li>• Keep your phone steady for consistent results</li>
+                <li>• Wear similar clothing to see changes better</li>
+              </ul>
+            </div>
 
-          {onNext && (
-            <Button onClick={onNext} className="w-full">
-              Ready to Start
+            {/* Start Camera Button */}
+            <Button 
+              onClick={onNext} 
+              className="w-full mt-6"
+              size="lg"
+            >
+              Start Camera
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
