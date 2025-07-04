@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCamera } from '@/hooks/useCamera';
 import { PoseGuide } from '@/components/PoseGuide';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { 
   Camera, 
   RotateCcw, 
@@ -12,7 +13,10 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  Image as ImageIcon,
+  Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -40,6 +44,7 @@ export const CameraCapture = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showGuideOverlay, setShowGuideOverlay] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -94,6 +99,94 @@ export const CameraCapture = ({
 
   const toggleGuideOverlay = () => {
     setShowGuideOverlay(!showGuideOverlay);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsCapturing(true);
+      
+      // Convert file to blob
+      const blob = new Blob([file], { type: file.type });
+      await onPhotoTaken(blob, dayNumber);
+      
+      toast({
+        title: "Photo Uploaded!",
+        description: `Day ${dayNumber} photo saved successfully.`,
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload photo. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const showDebugModal = () => {
+    const debugInfo = {
+      isSecureContext: window.isSecureContext,
+      protocol: window.location.protocol,
+      host: window.location.host,
+      hasMediaDevices: !!navigator.mediaDevices,
+      hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+      userAgent: navigator.userAgent,
+      error: state.error
+    };
+
+    const debugText = `
+Debug Information:
+- Secure Context (HTTPS): ${debugInfo.isSecureContext}
+- Protocol: ${debugInfo.protocol}
+- Host: ${debugInfo.host}
+- MediaDevices API: ${debugInfo.hasMediaDevices}
+- getUserMedia API: ${debugInfo.hasGetUserMedia}
+- Browser: ${debugInfo.userAgent.split(' ').slice(-2).join(' ')}
+- Current Error: ${debugInfo.error}
+
+Copy this information when reporting issues.
+    `.trim();
+
+    navigator.clipboard?.writeText(debugText).then(() => {
+      toast({
+        title: "Debug Info Copied",
+        description: "Debug information has been copied to clipboard.",
+      });
+    }).catch(() => {
+      // Fallback: show in alert
+      alert(debugText);
+    });
   };
 
   // Show pose guide first
@@ -247,14 +340,14 @@ export const CameraCapture = ({
           <div className="flex items-center justify-center h-full bg-black p-6">
             <Card className="bg-black/80 border-red-500/50 max-w-md">
               <CardContent className="p-6">
-                <Alert className="border-red-500/50 bg-red-500/10">
+                <Alert className="border-red-500/50 bg-red-500/10 mb-4">
                   <AlertCircle className="h-4 w-4 text-red-400" />
                   <AlertDescription className="text-white">
                     {state.error}
                   </AlertDescription>
                 </Alert>
                 
-                <div className="flex gap-3 mt-4">
+                <div className="flex gap-2 mb-4">
                   <Button
                     onClick={handleRetryCamera}
                     className="flex-1"
@@ -265,23 +358,60 @@ export const CameraCapture = ({
                   </Button>
                   
                   <Button
-                    onClick={onClose}
-                    variant="ghost"
-                    className="text-white hover:bg-white/20"
+                    onClick={triggerFileUpload}
+                    className="flex-1"
+                    variant="default"
+                    disabled={isCapturing}
                   >
-                    Cancel
+                    {isCapturing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Upload Photo
+                  </Button>
+
+                  <Button
+                    onClick={showDebugModal}
+                    variant="ghost"
+                    size="icon"
+                    className="text-white hover:bg-white/20"
+                    title="Copy Debug Info"
+                  >
+                    <Info className="h-4 w-4" />
                   </Button>
                 </div>
+
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  className="w-full text-white hover:bg-white/20"
+                >
+                  Cancel
+                </Button>
                 
                 <div className="mt-4 p-3 bg-white/10 rounded text-sm text-white/80">
                   <p className="font-medium mb-2">Troubleshooting tips:</p>
                   <ul className="text-xs space-y-1">
-                    <li>• Make sure camera permissions are enabled</li>
-                    <li>• Close other apps using the camera</li>
+                    <li>• <strong>HTTPS Required:</strong> Camera only works on HTTPS or localhost</li>
+                    <li>• Allow camera permissions in your browser settings</li>
+                    <li>• Close other apps using the camera (Zoom, Teams, etc.)</li>
                     <li>• Try refreshing the page</li>
-                    <li>• Use a different browser if problems persist</li>
+                    <li>• Use Chrome, Firefox, or Safari for best support</li>
+                    <li>• You can upload a photo instead if camera isn't working</li>
+                    <li>• Click the ⓘ icon to copy debug info for support</li>
                   </ul>
                 </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </CardContent>
             </Card>
           </div>
@@ -291,9 +421,30 @@ export const CameraCapture = ({
               <CardContent className="p-6 text-center">
                 <Camera className="h-12 w-12 text-white mx-auto mb-4" />
                 <p className="text-white mb-4">Camera not started</p>
-                <Button onClick={handleRetryCamera}>
-                  Start Camera
-                </Button>
+                <div className="flex gap-3">
+                  <Button onClick={handleRetryCamera} className="flex-1">
+                    <Camera className="h-4 w-4 mr-2" />
+                    Start Camera
+                  </Button>
+                  <Button onClick={triggerFileUpload} variant="outline" className="flex-1" disabled={isCapturing}>
+                    {isCapturing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Upload Photo
+                  </Button>
+                </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </CardContent>
             </Card>
           </div>

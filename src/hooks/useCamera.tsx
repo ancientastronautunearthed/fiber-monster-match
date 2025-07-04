@@ -23,9 +23,30 @@ export const useCamera = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // Check for secure context first
+      if (!window.isSecureContext) {
+        throw new Error('Camera requires HTTPS. Please use HTTPS or localhost.');
+      }
+
       // Check if media devices are supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera not supported on this device');
+      if (!navigator.mediaDevices) {
+        throw new Error('Media devices not supported in this browser');
+      }
+
+      if (!navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access not supported in this browser');
+      }
+
+      // Check if any video input devices are available
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        if (videoDevices.length === 0) {
+          throw new Error('No camera found on this device');
+        }
+      } catch (enumError) {
+        console.warn('Could not enumerate devices:', enumError);
+        // Continue anyway, getUserMedia will give us a better error
       }
 
       // Stop any existing stream first
@@ -102,27 +123,60 @@ export const useCamera = () => {
       
       let errorMessage = 'Camera access failed. Please check your permissions.';
       
-      if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = 'No camera found on this device.';
+      // Handle different types of errors
+      if (error.message.includes('HTTPS') || error.message.includes('secure context')) {
+        errorMessage = 'Camera requires HTTPS. Please access this site over HTTPS or use localhost for development.';
+      } else if (error.message.includes('not supported')) {
+        errorMessage = 'Camera not supported in this browser. Try Chrome, Firefox, or Safari.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = 'No camera found. Please connect a camera and try again.';
       } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         errorMessage = 'Camera permission denied. Please allow camera access and refresh the page.';
       } else if (error.name === 'NotSupportedError') {
         errorMessage = 'Camera not supported on this device or browser.';
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = 'Camera is being used by another application.';
+        errorMessage = 'Camera is being used by another application. Close other apps and try again.';
       } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-        errorMessage = 'Camera constraints not satisfied. Trying with basic settings...';
+        errorMessage = 'Camera settings not supported. Trying basic settings...';
         
-        // Try again with basic constraints
+        // Try again with very basic constraints
         try {
           const basicStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: state.facingMode },
+            video: true,
             audio: false
           });
           
           streamRef.current = basicStream;
           if (videoRef.current) {
             videoRef.current.srcObject = basicStream;
+            
+            await new Promise<void>((resolve, reject) => {
+              if (!videoRef.current) {
+                reject(new Error('Video element not available'));
+                return;
+              }
+
+              const video = videoRef.current;
+              
+              const onLoadedMetadata = () => {
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video.removeEventListener('error', onError);
+                resolve();
+              };
+
+              const onError = (error: Event) => {
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video.removeEventListener('error', onError);
+                reject(new Error('Failed to load video'));
+              };
+
+              video.addEventListener('loadedmetadata', onLoadedMetadata);
+              video.addEventListener('error', onError);
+
+              if (video.readyState >= 1) {
+                onLoadedMetadata();
+              }
+            });
           }
           
           setState(prev => ({
@@ -132,9 +186,11 @@ export const useCamera = () => {
             hasPermission: true,
             error: null
           }));
+          console.log('Camera started successfully with basic constraints');
           return;
         } catch (basicError) {
           console.error('Basic camera setup also failed:', basicError);
+          errorMessage = 'Camera could not be started with any settings. Please check your camera and permissions.';
         }
       }
       

@@ -292,7 +292,6 @@ const PhotoChallenge = () => {
     return (
       <ChallengeTemplateSelector
         onTemplateSelected={handleTemplateSelected}
-        onClose={() => setShowTemplateSelector(false)}
       />
     );
   }
